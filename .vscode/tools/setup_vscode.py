@@ -215,6 +215,17 @@ def main():
         with open(isaaclab_vscode_launch_filename, "w") as f:
             f.write(isaaclab_launch_settings)
 
+    isaaclab_python_env_path = os.path.join(PROJECT_DIR, ".vscode", ".python.env")
+    with open(isaaclab_python_env_path, "w") as f:
+   
+        parser = argparse.ArgumentParser(description="Setup the VSCode settings for the project.")
+        parser.add_argument("--isaac_path", type=str, help="The absolute path to the Isaac Sim installation.")
+        parser.add_argument("--isaac_lab_path", type=str, help="The absolute path to the Isaac lab libraries.")
+        args = parser.parse_args()
+        f.write(f"""
+PYTHONPATH={args.isaac_lab_path}:$PYTHONPATH
+                """)
+
 
 if __name__ == "__main__":
     main()
