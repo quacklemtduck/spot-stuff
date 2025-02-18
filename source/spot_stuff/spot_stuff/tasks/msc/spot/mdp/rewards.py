@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING
 from isaaclab.assets import Articulation, RigidObject
 from isaaclab.managers import ManagerTermBase, SceneEntityCfg
 from isaaclab.sensors import ContactSensor
-
+from isaaclab.utils.math import wrap_to_pi
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
     from isaaclab.managers import RewardTermCfg
@@ -280,3 +280,13 @@ def joint_velocity_penalty(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg) ->
     # extract the used quantities (to enable type-hinting)
     asset: Articulation = env.scene[asset_cfg.name]
     return torch.linalg.norm((asset.data.joint_vel), dim=1)
+
+
+def joint_pos_target_l2(env: ManagerBasedRLEnv, target: float, asset_cfg: SceneEntityCfg) -> torch.Tensor:
+    """Penalize joint position deviation from a target value."""
+    # extract the used quantities (to enable type-hinting)
+    asset: Articulation = env.scene[asset_cfg.name]
+    # wrap the joint positions to (-pi, pi)
+    joint_pos = wrap_to_pi(asset.data.joint_pos[:, asset_cfg.joint_ids])
+    # compute the reward
+    return torch.sum(torch.square(joint_pos - target), dim=1)

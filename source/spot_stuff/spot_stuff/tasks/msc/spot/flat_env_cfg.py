@@ -3,6 +3,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
+import math
 from isaaclab.assets.asset_base_cfg import AssetBaseCfg
 from isaaclab.envs.manager_based_rl_env_cfg import ManagerBasedRLEnvCfg
 from isaaclab.scene.interactive_scene_cfg import InteractiveSceneCfg
@@ -173,6 +174,16 @@ class SpotEventCfg:
         },
     )
 
+    reset_pole_position = EventTerm(
+        func=mdp.reset_joints_by_offset,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", joint_names=["arm0_sh1"]),
+            "position_range": (-0.2 * math.pi, 0.0 * math.pi),
+            "velocity_range": (-0.1, 0.1),
+        },
+    )
+
     # interval
     push_robot = EventTerm(
         func=mdp.push_by_setting_velocity,
@@ -276,6 +287,14 @@ class SpotRewardsCfg:
         func=spot_mdp.joint_velocity_penalty,
         weight=-1.0e-2,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=".*_h[xy]")},
+    )
+
+    # fuck your blank lines
+
+    arm_pos1 = RewardTermCfg(
+        func=spot_mdp.joint_pos_target_l2,
+        weight=-1.0,
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=["arm0_sh1"]), "target": -0.5 * math.pi},
     )
 
 

@@ -11,6 +11,7 @@ The following configuration parameters are available:
 * :obj:`SPOT_CFG`: The Spot robot with delay PD and remote PD actuators.
 """
 
+import math
 import os
 import isaaclab.sim as sim_utils
 from isaaclab.actuators import DelayedPDActuatorCfg, RemotizedPDActuatorCfg
@@ -160,7 +161,6 @@ SPOT_ARM_CFG = ArticulationCfg(
             "f[rl]_hy": 0.9,  # front hip_y
             "h[rl]_hy": 1.1,  # hind hip_y
             ".*_kn": -1.5,  # all knees
-
         },
         joint_vel={".*": 0.0},
     ),
