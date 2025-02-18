@@ -11,6 +11,7 @@ The following configuration parameters are available:
 * :obj:`SPOT_CFG`: The Spot robot with delay PD and remote PD actuators.
 """
 
+import os
 import isaaclab.sim as sim_utils
 from isaaclab.actuators import DelayedPDActuatorCfg, RemotizedPDActuatorCfg
 from isaaclab.assets.articulation import ArticulationCfg
@@ -129,10 +130,14 @@ and the output torque (N*m). It is used to interpolate the output torque based o
 # Configuration
 ##
 
+current_dir = os.path.dirname(os.path.abspath(__file__))
+spot_dir = os.path.abspath(os.path.join(current_dir, "..", "..", "..", "tasks", "msc", "spot"))
+# Construct the relative path to the spot_fixed.usd file
+usd_file_path = os.path.join(spot_dir, "assets", "spot_fixed.usd")
 
 SPOT_ARM_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path="/home/andreas/spot/msc-spot/spot/spot_fixed.usd",
+        usd_path=usd_file_path,
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
