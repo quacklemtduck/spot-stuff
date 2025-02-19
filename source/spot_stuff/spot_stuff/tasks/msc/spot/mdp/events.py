@@ -15,7 +15,7 @@ from __future__ import annotations
 import torch
 from typing import TYPE_CHECKING
 
-from isaaclab.assets import Articulation
+from isaaclab.assets import Articulation, RigidObject
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.utils.math import sample_uniform
 
@@ -56,3 +56,43 @@ def reset_joints_around_default(
     joint_vel = sample_uniform(joint_min_vel, joint_max_vel, joint_min_vel.shape, joint_min_vel.device)
     # set into the physics simulation
     asset.write_joint_state_to_sim(joint_pos, joint_vel, env_ids=env_ids)
+
+def update_spawn_marker(env: ManagerBasedEnv, env_ids: torch.Tensor, asset_cfg_robot: SceneEntityCfg, asset_cfg_marker: SceneEntityCfg):
+    robot: Articulation = env.scene[asset_cfg_robot.name]
+    marker: RigidObject = env.scene[asset_cfg_marker.name]
+    
+    # Get robot root state
+    root_state = robot.data.root_state_w[env_ids]
+    robot_position = root_state[:, :3]  # First 3 elements are position
+    
+    # Make sure we're only using the first position if we have multiple environments
+    single_position = robot_position[0].unsqueeze(0)  # Take first position and make it [1, 3]
+    
+    # Set marker position using only index 0
+    marker.set_world_poses(
+        positions=single_position,
+        orientations=None,
+        indices=torch.zeros(1, dtype=torch.int64, device=env_ids.device)  # Use only index 0
+    )
+
+
+
+
+"""
+Robot methods: [
+    'actuators', 'body_names', 'cfg', 'data', 'device', 'find_bodies', 'find_fixed_tendons', 'find_joints', 'fixed_tendon_names', 
+    'has_debug_vis_implementation', 'has_external_wrench', 'is_fixed_base', 'is_initialized', 'joint_names', 'num_bodies', 'num_fixed_tendons', 
+    'num_instances', 'num_joints', 'reset', 'root_physx_view', 'set_debug_vis', 'set_external_force_and_torque', 'set_fixed_tendon_damping', 
+    'set_fixed_tendon_limit', 'set_fixed_tendon_limit_stiffness', 'set_fixed_tendon_offset', 'set_fixed_tendon_rest_length', 'set_fixed_tendon_stiffness', 
+    'set_joint_effort_target', 'set_joint_position_target', 'set_joint_velocity_target', 'update', 'write_data_to_sim', 'write_fixed_tendon_properties_to_sim', 
+    'write_joint_armature_to_sim', 'write_joint_damping_to_sim', 'write_joint_effort_limit_to_sim', 'write_joint_friction_to_sim', 
+    'write_joint_limits_to_sim', 'write_joint_state_to_sim', 'write_joint_stiffness_to_sim', 'write_joint_velocity_limit_to_sim', 
+    'write_root_com_pose_to_sim', 'write_root_com_state_to_sim', 'write_root_com_velocity_to_sim', 'write_root_link_pose_to_sim', 
+    'write_root_link_state_to_sim', 'write_root_link_velocity_to_sim', 'write_root_pose_to_sim', 'write_root_state_to_sim', 'write_root_velocity_to_sim'
+]
+Marker methods: [
+    'apply_visual_materials', 'count', 'get_applied_visual_materials', 'get_default_state', 'get_local_poses', 'get_local_scales', 'get_visibilities', 
+    'get_world_poses', 'get_world_scales', 'initialize', 'initialized', 'is_non_root_articulation_link', 'is_valid', 'is_visual_material_applied', 
+    'name', 'post_reset', 'prim_paths', 'prims', 'set_default_state', 'set_local_poses', 'set_local_scales', 'set_visibilities', 'set_world_poses'
+]
+"""
