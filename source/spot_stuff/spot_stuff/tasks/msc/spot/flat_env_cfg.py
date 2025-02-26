@@ -17,8 +17,9 @@ from isaaclab.managers import TerminationTermCfg as DoneTerm
 from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
-from isaaclab.assets import ArticulationCfg
-from isaaclab.markers import VisualizationMarkers, VisualizationMarkersCfg
+from isaaclab.assets import ArticulationCfg, RigidObjectCfg
+import math
+from dataclasses import MISSING
 from . import mdp as spot_mdp
 # import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
 import isaaclab.envs.mdp as mdp
@@ -51,6 +52,21 @@ class SpotCommandsCfg:
             # lin_vel_x=(-2.0, 3.0), lin_vel_y=(-1.5, 1.5), ang_vel_z=(-2.0, 2.0)
         ),
     )
+
+    # goal_command = mdp.UniformPoseCommandCfg(
+    #     asset_name="marker",
+    #     body_name="frame",
+    #     resampling_time_range=(10.0,15.0),
+    #     debug_vis=True,
+    #     ranges=mdp.UniformPoseCommandCfg.Ranges(
+    #         pos_x=(-1.0, 1.0),
+    #         pos_y=(-1.0, 1.0),
+    #         pos_z=(0.0, 1.0),
+    #         roll=(0.0,0.0),
+    #         pitch=(0.0,0.0),
+    #         yaw=(0.0,0.0)
+    #     )
+    # )
 
 
 @configclass
@@ -133,7 +149,16 @@ class SpotEventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot"),
-            "pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "yaw": (-0.5, 0.5)},
+            "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "yaw": (-0.0, 0.0)},
+            "velocity_range": {},
+        },
+    )
+    reset_box = EventTerm(
+        func=mdp.reset_root_state_uniform,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("box"),
+            "pose_range": {"x": (0.5, 1.0), "y": (0.1, 0.5), "yaw": (-0.0, 0.0)},
             "velocity_range": {},
         },
     )
@@ -147,23 +172,14 @@ class SpotEventCfg:
             "asset_cfg": SceneEntityCfg("robot"),
         },
     )
-    update_spawn_marker = EventTerm(
-            func=spot_mdp.update_spawn_marker,
-            mode="reset",
-            params={
-                "asset_cfg_robot": SceneEntityCfg("robot", body_names="body"),
-                "asset_cfg_marker": SceneEntityCfg("marker"),
-            },
-        )
 
-    # reset_pole_position = EventTerm(
-    #     func=mdp.reset_joints_by_offset,
+    # reset_marker_pos = EventTerm(
+    #     func=spot_mdp.reset_marker_position,
     #     mode="reset",
     #     params={
-    #         "asset_cfg": SceneEntityCfg("robot", joint_names=["arm0_sh1"]),
-    #         "position_range": (-0.2 * math.pi, 0.0 * math.pi),
-    #         "velocity_range": (-0.1, 0.1),
-    #     },
+    #         "asset_cfg": SceneEntityCfg("robot"),
+    #         "position_range": {"x": (-1.0,1.0), "y": (-1.0,1.0), "z": (-1.0,1.0)},
+    #     }
     # )
 
     # interval
@@ -206,6 +222,12 @@ class SpotRewardsCfg:
         func=spot_mdp.good_boy_points,
         weight=1.0,
         params={"asset_cfg": SceneEntityCfg("robot", body_names="body")}
+    )
+
+    catchy_points = RewardTermCfg(
+        func=spot_mdp.catch_box,
+        weight=3.0,
+        params={"robot_cfg": SceneEntityCfg("robot", body_names="arm0_link_fngr"), "box_cfg": SceneEntityCfg("box")}
     )
     # foot_clearance = RewardTermCfg(
     #     func=spot_mdp.foot_clearance_reward,
@@ -313,12 +335,27 @@ class SpotSceneCfg(InteractiveSceneCfg):
         ),
     )
 
-    marker = AssetBaseCfg(
-        prim_path="{ENV_REGEX_NS}/spawnmarker",
-        spawn=sim_utils.SphereCfg(
-            radius=0.1,
-            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0)),  # Red color
-        )
+    # marker = RigidObjectCfg(
+    #     prim_path="{ENV_REGEX_NS}/spawnmarker",
+    #     spawn=sim_utils.UsdFileCfg(
+    #         usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/UIElements/frame_prim.usd",
+    #         scale=(0.1, 0.1, 0.1),
+    #         rigid_props=sim_utils.RigidBodyPropertiesCfg(),
+    #         mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
+    #         collision_props=sim_utils.CollisionPropertiesCfg(),
+    #     ),
+    #     init_state=RigidObjectCfg.InitialStateCfg()
+    # )
+    box = RigidObjectCfg(
+        prim_path="{ENV_REGEX_NS}/Box",
+        spawn=sim_utils.CuboidCfg(
+            size=(0.1,0.1,0.1),
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(),
+            mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
+            collision_props=sim_utils.CollisionPropertiesCfg(),
+            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.27, 0.63), metallic=0.2),
+        ),
+        init_state=RigidObjectCfg.InitialStateCfg(),
     )
 
 @configclass

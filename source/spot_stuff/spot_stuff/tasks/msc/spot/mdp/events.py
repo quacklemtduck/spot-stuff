@@ -19,6 +19,7 @@ from isaaclab.assets import Articulation, RigidObject
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.utils.math import sample_uniform
 
+
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedEnv
 
@@ -57,25 +58,51 @@ def reset_joints_around_default(
     # set into the physics simulation
     asset.write_joint_state_to_sim(joint_pos, joint_vel, env_ids=env_ids)
 
-def update_spawn_marker(env: ManagerBasedEnv, env_ids: torch.Tensor, asset_cfg_robot: SceneEntityCfg, asset_cfg_marker: SceneEntityCfg):
-    robot: Articulation = env.scene[asset_cfg_robot.name]
-    marker: RigidObject = env.scene[asset_cfg_marker.name]
+  
+def reset_marker_position(
+    env: ManagerBasedEnv,
+    env_ids: torch.Tensor,
+    asset_cfg: SceneEntityCfg,
+    position_range: dict = {"x": (-1.0, 1.0), "y": (-1.0, 1.0), "z": (0.0, 0.5)},
+) -> None:
+    """Reset the position of a marker or simple prim.
     
-    # Get robot root state
-    root_state = robot.data.root_state_w[env_ids]
-    robot_position = root_state[:, :3]  # First 3 elements are position
+    Args:
+        env: The environment.
+        env_ids: The environment IDs to reset.
+        asset_cfg: The asset configuration for the marker.
+        position_range: Range for random position.
+    """
+    # Get the marker handle
+    marker = env.scene[asset_cfg.name]
+    print("----NEW----")
+    print(vars(marker))
     
-    # Make sure we're only using the first position if we have multiple environments
-    single_position = robot_position[0].unsqueeze(0)  # Take first position and make it [1, 3]
+    # Get current poses
+    current_pos, current_rot = marker.get_world_poses(indices=env_ids)
+    print(current_pos)
     
-    # Set marker position using only index 0
-    marker.set_world_poses(
-        positions=single_position,
-        orientations=None,
-        indices=torch.zeros(1, dtype=torch.int64, device=env_ids.device)  # Use only index 0
-    )
-
-
+    # Generate random positions within the specified ranges
+    num_envs = len(env_ids)
+    device = env_ids.device
+    
+    # Create new positions based on ranges
+    new_pos = current_pos.clone()
+    
+    if "x" in position_range:
+        x_min, x_max = position_range["x"]
+        new_pos[0, 0] = torch.rand(1, device=device) * (x_max - x_min) + x_min
+    
+    if "y" in position_range:
+        y_min, y_max = position_range["y"]
+        new_pos[0, 1] = torch.rand(1, device=device) * (y_max - y_min) + y_min
+    
+    if "z" in position_range:
+        z_min, z_max = position_range["z"]
+        new_pos[0, 2] = torch.rand(1, device=device) * (z_max - z_min) + z_min
+    print(new_pos)
+    # Set the new poses
+    marker.set_world_poses(new_pos, current_rot, env_ids)
 
 
 """

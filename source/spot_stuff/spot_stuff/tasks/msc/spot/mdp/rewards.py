@@ -292,50 +292,6 @@ def joint_pos_target_l2(env: ManagerBasedRLEnv, target: float, asset_cfg: SceneE
     return torch.sum(torch.square(joint_pos - target), dim=1)
 
 
-# def good_boy_points(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
-#     """
-#     Reward function for keeping the asset near its original position.
-
-#     This function calculates a reward based on the Euclidean distance between
-#     the asset's current position and its initial position. The reward decays
-#     exponentially as the distance increases, providing higher rewards for
-#     being closer to the initial, desired state.
-
-#     Assumptions:
-#       - The asset's initial position is stored in asset_cfg as `initial_pos`
-#         (which is a tensor or an array-like of shape (3,)).
-#       - The asset's current position is accessed via asset.data.root_pos,
-#         which is assumed to be a tensor of shape (N, 3) where N is the number
-#         of agents or samples.
-
-#     Args:
-#       env: The ManagerBasedRLEnv environment that contains the scene.
-#       asset_cfg: The configuration for the scene asset, which includes the asset
-#                name and its initial position.
-
-#     Returns:
-#       A torch.Tensor containing the reward for each agent (or sample), where a
-#       higher reward is given for positions closer to the initial position.
-#     """
-#     # Retrieve the asset from the environment using its name
-#     asset: RigidObject = env.scene[asset_cfg.name]
-    
-#     # Get the asset's current position (assumed to be a tensor of shape (N, 3))
-#     current_pos = asset.data.root_pos_w
-    
-#     # Get the asset's desired initial position; ensure it is a tensor
-#     initial_pos = torch.tensor(asset_cfg.initial_pos, dtype=current_pos.dtype,
-#                                device=current_pos.device)
-    
-#     # Compute the Euclidean distance from the current position to the initial position
-#     error = torch.linalg.norm(current_pos - initial_pos, dim=1)
-    
-#     # Compute the reward based on an exponential decay, so that being closer
-#     # to the initial position results in a higher reward.
-#     reward = torch.exp(-error)
-    
-#     return reward
-
 
 def good_boy_points(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
     """
@@ -372,5 +328,45 @@ def good_boy_points(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg) -> torch.
     joint_velocities = asset.data.joint_vel  # type: ignore
     joint_movement_penalty = torch.sum(torch.abs(joint_velocities), dim=1) * 0.01
     reward -= joint_movement_penalty
+
+    return reward
+
+def catch_box(env: ManagerBasedRLEnv, robot_cfg: SceneEntityCfg, box_cfg: SceneEntityCfg) -> torch.Tensor:
+    """
+    Reward function for encouraging a robot to move arm to box.
+
+    Args:
+        env: The Isaac Lab environment.
+        asset_cfg: Configuration for the asset (robot).
+        box_cfg: Configuration for the box .
+
+    Returns:
+        A torch.Tensor containing the reward for each robot instance.
+    """
+    # Extract the asset
+    asset: RigidObject = env.scene[robot_cfg.name]
+
+    # Get current position of the robot
+    current_positions = asset.data.root_pos_w[:]
+    
+
+    # Get the initial position of the robot (assuming it's stored in the environment)
+
+    box: RigidObject = env.scene[box_cfg.name]
+    initial_positions = box.data.root_pos_w[:]
+    # Calculate the distance from the initial position
+    distances = torch.linalg.norm(current_positions - initial_positions, dim=1)
+
+    # Define parameters for the reward function
+    max_distance = 10.0  # Maximum distance to consider for reward
+    reward_scale = 1.0  # Scaling factor for the reward
+
+    # Calculate the reward using an exponential decay based on distance
+    reward = torch.exp(-distances**2 / (2 * (max_distance / 3) ** 2)) * reward_scale
+
+    # Optional: Add a small penalty for excessive joint movements (example)
+    # joint_velocities = asset.data.joint_vel  # type: ignore
+    # joint_movement_penalty = torch.sum(torch.abs(joint_velocities), dim=1) * 0.01
+    # reward -= joint_movement_penalty
 
     return reward
