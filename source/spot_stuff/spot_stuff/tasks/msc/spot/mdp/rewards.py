@@ -281,6 +281,12 @@ def joint_velocity_penalty(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg) ->
     asset: Articulation = env.scene[asset_cfg.name]
     return torch.linalg.norm((asset.data.joint_vel), dim=1)
 
+def arm_velocity_penalty(env: ManagerBasedRLEnv, robot_cfg: SceneEntityCfg) -> torch.Tensor:
+    robot: Articulation = env.scene[robot_cfg.name]
+    #print(robot.data.joint_vel.shape)
+    #print(robot.data.joint_vel[0])
+    return torch.linalg.norm((robot.data.joint_vel), dim=1)
+
 
 def joint_pos_target_l2(env: ManagerBasedRLEnv, target: float, asset_cfg: SceneEntityCfg) -> torch.Tensor:
     """Penalize joint position deviation from a target value."""

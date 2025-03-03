@@ -96,6 +96,11 @@ class SpotObservationsCfg:
         joint_vel = ObsTerm(
             func=mdp.joint_vel_rel, params={"asset_cfg": SceneEntityCfg("robot")}, noise=Unoise(n_min=-0.5, n_max=0.5)
         )
+        
+        # arm_vel = ObsTerm(
+        #     func=mdp.joint_vel_rel, params={"asset_cfg": SceneEntityCfg("robot", joint_names="arm0_.*")}, noise=Unoise(n_min=-0.5, n_max=0.5)
+        # )
+
         actions = ObsTerm(func=mdp.last_action)
 
         def __post_init__(self):
@@ -158,7 +163,7 @@ class SpotEventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("box"),
-            "pose_range": {"x": (0.5, 1.0), "y": (0.1, 0.5), "yaw": (-0.0, 0.0)},
+            "pose_range": {"x": (0.2, 0.4), "y": (-0.3, 0.3), "z": (0.1, 0.5)},
             "velocity_range": {},
         },
     )
@@ -299,6 +304,12 @@ class SpotRewardsCfg:
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=".*_h[xy]")},
     )
 
+    # arm_vel = RewardTermCfg(
+    #     func=spot_mdp.arm_velocity_penalty,
+    #     weight=1.0,
+    #     params={"robot_cfg": SceneEntityCfg("robot", joint_names="arm0_.*")},
+    # )
+
     # fuck your blank lines
 
     # arm_pos1 = RewardTermCfg(
@@ -350,7 +361,7 @@ class SpotSceneCfg(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/Box",
         spawn=sim_utils.CuboidCfg(
             size=(0.1,0.1,0.1),
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(),
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(kinematic_enabled=True),
             mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
             collision_props=sim_utils.CollisionPropertiesCfg(),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.27, 0.63), metallic=0.2),
