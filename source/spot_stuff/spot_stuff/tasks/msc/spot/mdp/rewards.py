@@ -337,7 +337,7 @@ def good_boy_points(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg) -> torch.
 
     return reward
 
-def catch_box(env: ManagerBasedRLEnv, robot_cfg: SceneEntityCfg, box_cfg: SceneEntityCfg) -> torch.Tensor:
+def catch_box(env: ManagerBasedRLEnv, robot_cfg: SceneEntityCfg) -> torch.Tensor:
     """
     Reward function for encouraging a robot to move arm to box.
 
@@ -359,17 +359,41 @@ def catch_box(env: ManagerBasedRLEnv, robot_cfg: SceneEntityCfg, box_cfg: SceneE
     
     # Calculate the distance from the initial position
     distances = torch.linalg.norm(current_positions - target, dim=1)
+    return distances
+    # # Define parameters for the reward function
+    # max_distance = 10.0  # Maximum distance to consider for reward
+    # reward_scale = 1.0  # Scaling factor for the reward
 
-    # Define parameters for the reward function
-    max_distance = 10.0  # Maximum distance to consider for reward
-    reward_scale = 1.0  # Scaling factor for the reward
+    # # Calculate the reward using an exponential decay based on distance
+    # reward = torch.exp(-distances**2 / (2 * (max_distance / 3) ** 2)) * reward_scale
 
-    # Calculate the reward using an exponential decay based on distance
-    reward = torch.exp(-distances**2 / (2 * (max_distance / 3) ** 2)) * reward_scale
+    # # Optional: Add a small penalty for excessive joint movements (example)
+    # # joint_velocities = asset.data.joint_vel  # type: ignore
+    # # joint_movement_penalty = torch.sum(torch.abs(joint_velocities), dim=1) * 0.01
+    # # reward -= joint_movement_penalty
 
-    # Optional: Add a small penalty for excessive joint movements (example)
-    # joint_velocities = asset.data.joint_vel  # type: ignore
-    # joint_movement_penalty = torch.sum(torch.abs(joint_velocities), dim=1) * 0.01
-    # reward -= joint_movement_penalty
+    # return reward
 
-    return reward
+def catch_box_tanh(env: ManagerBasedRLEnv, robot_cfg: SceneEntityCfg, std: float) -> torch.Tensor:
+    """
+    Reward function for encouraging a robot to move arm to box.
+
+    Args:
+        env: The Isaac Lab environment.
+        asset_cfg: Configuration for the asset (robot).
+        box_cfg: Configuration for the box .
+
+    Returns:
+        A torch.Tensor containing the reward for each robot instance.
+    """
+    # Extract the asset
+    asset: RigidObject = env.scene[robot_cfg.name]
+    # Get current position of the robot
+    current_positions = env.scene.env_origins[:] - asset.data.body_pos_w[:, robot_cfg.body_ids][0]
+    
+    # Get the initial position of the robot (assuming it's stored in the environment)
+    target = env.command_manager.get_command("goal_command")[:, :3]
+    
+    # Calculate the distance from the initial position
+    distances = torch.linalg.norm(current_positions - target, dim=1)
+    return 1 - torch.tanh(distances / std)

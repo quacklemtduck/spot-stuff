@@ -178,8 +178,14 @@ class SpotRewardsCfg:
 
     catchy_points = RewardTermCfg(
         func=spot_mdp.catch_box,
-        weight=3.0,
-        params={"robot_cfg": SceneEntityCfg("robot", body_names="arm0_link_fngr"), "box_cfg": SceneEntityCfg("box")}
+        weight=-0.2,
+        params={"robot_cfg": SceneEntityCfg("robot", body_names="arm0_link_fngr")}
+    )
+
+    catchy_points_tanh = RewardTermCfg(
+        func=spot_mdp.catch_box_tanh,
+        weight=0.1,
+        params={"robot_cfg": SceneEntityCfg("robot", body_names="arm0_link_fngr"), "std": 0.1}
     )
    
 
