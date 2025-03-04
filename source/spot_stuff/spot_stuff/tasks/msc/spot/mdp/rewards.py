@@ -265,7 +265,7 @@ def joint_position_penalty(
     cmd = torch.linalg.norm(env.command_manager.get_command("base_velocity"), dim=1)
     body_vel = torch.linalg.norm(asset.data.root_lin_vel_b[:, :2], dim=1)
     reward = torch.linalg.norm((asset.data.joint_pos - asset.data.default_joint_pos), dim=1)
-    return torch.where(torch.logical_or(cmd > 0.0, body_vel > velocity_threshold), reward, stand_still_scale * reward)
+    return torch.where(torch.logical_or(body_vel > velocity_threshold), reward, stand_still_scale * reward)
 
 
 def joint_torques_penalty(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
@@ -351,17 +351,14 @@ def catch_box(env: ManagerBasedRLEnv, robot_cfg: SceneEntityCfg, box_cfg: SceneE
     """
     # Extract the asset
     asset: RigidObject = env.scene[robot_cfg.name]
-
     # Get current position of the robot
-    current_positions = asset.data.root_pos_w[:]
+    current_positions = env.scene.env_origins[:] - asset.data.body_pos_w[:, robot_cfg.body_ids][0]
     
-
     # Get the initial position of the robot (assuming it's stored in the environment)
-
-    box: RigidObject = env.scene[box_cfg.name]
-    initial_positions = box.data.root_pos_w[:]
+    target = env.command_manager.get_command("goal_command")[:, :3]
+    
     # Calculate the distance from the initial position
-    distances = torch.linalg.norm(current_positions - initial_positions, dim=1)
+    distances = torch.linalg.norm(current_positions - target, dim=1)
 
     # Define parameters for the reward function
     max_distance = 10.0  # Maximum distance to consider for reward
