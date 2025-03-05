@@ -39,6 +39,18 @@ class SpotActionsCfg:
 @configclass
 class SpotCommandsCfg:
     """Command specifications for the MDP."""
+    base_velocity = mdp.UniformVelocityCommandCfg(
+        asset_name="robot",
+        resampling_time_range=(10.0, 10.0),
+        rel_standing_envs=0.1,
+        rel_heading_envs=0.0,
+        heading_command=False,
+        debug_vis=True,
+        ranges=mdp.UniformVelocityCommandCfg.Ranges(
+            lin_vel_x=(0.0, 0.0), lin_vel_y=(0.0, 0.0), ang_vel_z=(0.0, 0.0)
+            # lin_vel_x=(-2.0, 3.0), lin_vel_y=(-1.5, 1.5), ang_vel_z=(-2.0, 2.0)
+        ),
+    )
 
     goal_command = spot_mdp.WorldPoseCommandCfg(
         asset_name="robot",
@@ -73,6 +85,7 @@ class SpotObservationsCfg:
             params={"asset_cfg": SceneEntityCfg("robot")},
             noise=Unoise(n_min=-0.05, n_max=0.05),
         )
+        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"})
         # velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"})
         joint_pos = ObsTerm(
             func=mdp.joint_pos_rel, params={"asset_cfg": SceneEntityCfg("robot")}, noise=Unoise(n_min=-0.05, n_max=0.05)
@@ -170,17 +183,28 @@ class SpotEventCfg:
 @configclass
 class SpotRewardsCfg:
 
+    base_angular_velocity = RewardTermCfg(
+        func=spot_mdp.base_angular_velocity_reward,
+        weight=5.0,
+        params={"std": 2.0, "asset_cfg": SceneEntityCfg("robot")},
+    )
+    base_linear_velocity = RewardTermCfg(
+        func=spot_mdp.base_linear_velocity_reward,
+        weight=5.0,
+        params={"std": 1.0, "ramp_rate": 0.5, "ramp_at_vel": 1.0, "asset_cfg": SceneEntityCfg("robot")},
+    )
+
     good_boy_points = RewardTermCfg(
         func=spot_mdp.good_boy_points,
         weight=1.0,
         params={"asset_cfg": SceneEntityCfg("robot", body_names="body")}
     )
 
-    catchy_points = RewardTermCfg(
-        func=spot_mdp.catch_box,
-        weight=-0.2,
-        params={"robot_cfg": SceneEntityCfg("robot", body_names="arm0_link_fngr")}
-    )
+    # catchy_points = RewardTermCfg(
+    #     func=spot_mdp.catch_box,
+    #     weight=-0.1,
+    #     params={"robot_cfg": SceneEntityCfg("robot", body_names="arm0_link_fngr")}
+    # )
 
     catchy_points_tanh = RewardTermCfg(
         func=spot_mdp.catch_box_tanh,
@@ -212,15 +236,15 @@ class SpotRewardsCfg:
         weight=-1.0e-4,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=".*_h[xy]")},
     )
-    # joint_pos = RewardTermCfg(
-    #     func=spot_mdp.joint_position_penalty,
-    #     weight=-0.7,
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
-    #         "stand_still_scale": 5.0,
-    #         "velocity_threshold": 0.5,
-    #     },
-    # )
+    joint_pos = RewardTermCfg(
+        func=spot_mdp.joint_position_penalty,
+        weight=-0.7,
+        params={
+            "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
+            "stand_still_scale": 5.0,
+            "velocity_threshold": 0.5,
+        },
+    )
     joint_torques = RewardTermCfg(
         func=spot_mdp.joint_torques_penalty,
         weight=-5.0e-4,
