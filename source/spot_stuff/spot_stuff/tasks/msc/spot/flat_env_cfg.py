@@ -23,6 +23,7 @@ from dataclasses import MISSING
 from . import mdp as spot_mdp
 # import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
 import isaaclab.envs.mdp as mdp
+from isaaclab.managers import CurriculumTermCfg as CurrTerm
 ##
 # Pre-defined configs
 ##
@@ -200,11 +201,11 @@ class SpotRewardsCfg:
         params={"asset_cfg": SceneEntityCfg("robot", body_names="body")}
     )
 
-    # catchy_points = RewardTermCfg(
-    #     func=spot_mdp.catch_box,
-    #     weight=-0.1,
-    #     params={"robot_cfg": SceneEntityCfg("robot", body_names="arm0_link_fngr")}
-    # )
+    catchy_points = RewardTermCfg(
+        func=spot_mdp.catch_box,
+        weight=-0.01,
+        params={"robot_cfg": SceneEntityCfg("robot", body_names="arm0_link_fngr")}
+    )
 
     catchy_points_tanh = RewardTermCfg(
         func=spot_mdp.catch_box_tanh,
@@ -290,17 +291,6 @@ class SpotSceneCfg(InteractiveSceneCfg):
         ),
     )
 
-    # marker = RigidObjectCfg(
-    #     prim_path="{ENV_REGEX_NS}/spawnmarker",
-    #     spawn=sim_utils.UsdFileCfg(
-    #         usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/UIElements/frame_prim.usd",
-    #         scale=(0.1, 0.1, 0.1),
-    #         rigid_props=sim_utils.RigidBodyPropertiesCfg(),
-    #         mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
-    #         collision_props=sim_utils.CollisionPropertiesCfg(),
-    #     ),
-    #     init_state=RigidObjectCfg.InitialStateCfg()
-    # )
     box = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Box",
         spawn=sim_utils.CuboidCfg(
@@ -314,6 +304,10 @@ class SpotSceneCfg(InteractiveSceneCfg):
     )
 
 @configclass
+class CurriculumCfg:
+    catchy_curriculum = CurrTerm(func=spot_mdp.catchy_increase) # type: ignore
+
+@configclass
 class MscEnvCfg(ManagerBasedRLEnvCfg):
     scene: SpotSceneCfg = SpotSceneCfg(num_envs=1024, env_spacing=2.5)
     # Basic settings'
@@ -325,6 +319,7 @@ class MscEnvCfg(ManagerBasedRLEnvCfg):
     rewards: SpotRewardsCfg = SpotRewardsCfg()
     terminations: SpotTerminationsCfg = SpotTerminationsCfg()
     events: SpotEventCfg = SpotEventCfg()
+    curriculum: CurriculumCfg = CurriculumCfg()
 
     # Viewer
     viewer = ViewerCfg(eye=(10.5, 10.5, 0.3), origin_type="world", env_index=0, asset_name="robot")

@@ -9,3 +9,4 @@
 from .events import *  # noqa: F401, F403
 from .rewards import *  # noqa: F401, F403
 from .commands_cfg import *
+from .curriculums import *
