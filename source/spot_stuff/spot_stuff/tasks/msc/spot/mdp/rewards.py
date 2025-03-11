@@ -352,8 +352,7 @@ def catch_box(env: ManagerBasedRLEnv, robot_cfg: SceneEntityCfg) -> torch.Tensor
     # Extract the asset
     asset: RigidObject = env.scene[robot_cfg.name]
     # Get current position of the robot
-    current_positions = env.scene.env_origins[:] - asset.data.body_pos_w[:, robot_cfg.body_ids][0]
-    
+    current_positions = env.scene.env_origins[:] - asset.data.body_pos_w[:, robot_cfg.body_ids].squeeze(1)
     # Get the initial position of the robot (assuming it's stored in the environment)
     target = env.command_manager.get_command("goal_command")[:, :3]
     
@@ -389,7 +388,7 @@ def catch_box_tanh(env: ManagerBasedRLEnv, robot_cfg: SceneEntityCfg, std: float
     # Extract the asset
     asset: RigidObject = env.scene[robot_cfg.name]
     # Get current position of the robot
-    current_positions = env.scene.env_origins[:] - asset.data.body_pos_w[:, robot_cfg.body_ids][0]
+    current_positions = env.scene.env_origins[:] - asset.data.body_pos_w[:, robot_cfg.body_ids].squeeze(1)
     
     # Get the initial position of the robot (assuming it's stored in the environment)
     target = env.command_manager.get_command("goal_command")[:, :3]

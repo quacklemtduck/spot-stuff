@@ -161,6 +161,9 @@ SPOT_ARM_CFG = ArticulationCfg(
             "f[rl]_hy": 0.9,  # front hip_y
             "h[rl]_hy": 1.1,  # hind hip_y
             ".*_kn": -1.5,  # all knees
+            "arm0_sh1": -0.9 * math.pi,
+            "arm0_el0": 0.9 * math.pi
+
         },
         joint_vel={".*": 0.0},
     ),
@@ -183,7 +186,7 @@ SPOT_ARM_CFG = ArticulationCfg(
             max_delay=4,  # physics time steps (max: 2.0*4=8.0ms)
         ),
         "spot_arm": DelayedPDActuatorCfg(
-            joint_names_expr=["arm0_.*"],
+            joint_names_expr=["arm0.*"],
             effort_limit=45.0,
             stiffness=60.0,
             damping=1.5,
