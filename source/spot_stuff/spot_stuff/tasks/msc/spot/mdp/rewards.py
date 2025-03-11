@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import torch
 from typing import TYPE_CHECKING
-
+from isaaclab.sensors import FrameTransformer
 from isaaclab.assets import Articulation, RigidObject
 from isaaclab.managers import ManagerTermBase, SceneEntityCfg
 from isaaclab.sensors import ContactSensor
@@ -337,7 +337,7 @@ def good_boy_points(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg) -> torch.
 
     return reward
 
-def catch_box(env: ManagerBasedRLEnv, robot_cfg: SceneEntityCfg) -> torch.Tensor:
+def catch_box(env: ManagerBasedRLEnv, ee_frame_cfg: SceneEntityCfg) -> torch.Tensor:
     """
     Reward function for encouraging a robot to move arm to box.
 
@@ -350,9 +350,11 @@ def catch_box(env: ManagerBasedRLEnv, robot_cfg: SceneEntityCfg) -> torch.Tensor
         A torch.Tensor containing the reward for each robot instance.
     """
     # Extract the asset
-    asset: RigidObject = env.scene[robot_cfg.name]
+    #asset: RigidObject = env.scene[robot_cfg.name]
+    ee_frame: FrameTransformer = env.scene[ee_frame_cfg.name]
     # Get current position of the robot
-    current_positions = env.scene.env_origins[:] - asset.data.body_pos_w[:, robot_cfg.body_ids].squeeze(1)
+    #current_positions =  asset.data.body_pos_w[:, robot_cfg.body_ids].squeeze(1) - env.scene.env_origins[:]
+    current_positions = ee_frame.data.target_pos_w.squeeze(1) - env.scene.env_origins
     # Get the initial position of the robot (assuming it's stored in the environment)
     target = env.command_manager.get_command("goal_command")[:, :3]
     
@@ -373,7 +375,7 @@ def catch_box(env: ManagerBasedRLEnv, robot_cfg: SceneEntityCfg) -> torch.Tensor
 
     # return reward
 
-def catch_box_tanh(env: ManagerBasedRLEnv, robot_cfg: SceneEntityCfg, std: float) -> torch.Tensor:
+def catch_box_tanh(env: ManagerBasedRLEnv, ee_frame_cfg: SceneEntityCfg, std: float) -> torch.Tensor:
     """
     Reward function for encouraging a robot to move arm to box.
 
@@ -386,10 +388,12 @@ def catch_box_tanh(env: ManagerBasedRLEnv, robot_cfg: SceneEntityCfg, std: float
         A torch.Tensor containing the reward for each robot instance.
     """
     # Extract the asset
-    asset: RigidObject = env.scene[robot_cfg.name]
+    # Extract the asset
+    #asset: RigidObject = env.scene[robot_cfg.name]
+    ee_frame: FrameTransformer = env.scene[ee_frame_cfg.name]
     # Get current position of the robot
-    current_positions = env.scene.env_origins[:] - asset.data.body_pos_w[:, robot_cfg.body_ids].squeeze(1)
-    
+    #current_positions =  asset.data.body_pos_w[:, robot_cfg.body_ids].squeeze(1) - env.scene.env_origins[:]
+    current_positions = ee_frame.data.target_pos_w.squeeze(1) - env.scene.env_origins
     # Get the initial position of the robot (assuming it's stored in the environment)
     target = env.command_manager.get_command("goal_command")[:, :3]
     

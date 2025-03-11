@@ -24,6 +24,8 @@ from . import mdp as spot_mdp
 # import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
 import isaaclab.envs.mdp as mdp
 from isaaclab.managers import CurriculumTermCfg as CurrTerm
+from isaaclab.sensors import FrameTransformerCfg
+from isaaclab.sensors.frame_transformer.frame_transformer_cfg import OffsetCfg
 ##
 # Pre-defined configs
 ##
@@ -59,9 +61,9 @@ class SpotCommandsCfg:
         resampling_time_range=(10.0,15.0),
         debug_vis=True,
         ranges=spot_mdp.WorldPoseCommandCfg.Ranges(
-            pos_x=(0.2, 0.4),
-            pos_y=(-0.3, 0.3),
-            pos_z=(0.1, 0.5),
+            pos_x=(0.3, 0.3),
+            pos_y=(-0.0, 0.0),
+            pos_z=(0.3, 0.3),
         )
     )
 
@@ -97,6 +99,7 @@ class SpotObservationsCfg:
 
         arm_command = ObsTerm(func=mdp.generated_commands, params={"command_name": "goal_command"})
         
+        finger_obs = ObsTerm(func=spot_mdp.object_obs)
         # arm_vel = ObsTerm(
         #     func=mdp.joint_vel_rel, params={"asset_cfg": SceneEntityCfg("robot", joint_names="arm0_.*")}, noise=Unoise(n_min=-0.5, n_max=0.5)
         # )
@@ -203,14 +206,14 @@ class SpotRewardsCfg:
 
     catchy_points = RewardTermCfg(
         func=spot_mdp.catch_box,
-        weight=-0.01,
-        params={"robot_cfg": SceneEntityCfg("robot", body_names="arm0_link_fngr")}
+        weight=-0.2,
+        params={"ee_frame_cfg": SceneEntityCfg("ee_frame")}
     )
 
     catchy_points_tanh = RewardTermCfg(
         func=spot_mdp.catch_box_tanh,
         weight=0.1,
-        params={"robot_cfg": SceneEntityCfg("robot", body_names="arm0_link_fngr"), "std": 0.1}
+        params={"ee_frame_cfg": SceneEntityCfg("ee_frame"), "std": 0.1}
     )
    
 
@@ -291,6 +294,12 @@ class SpotSceneCfg(InteractiveSceneCfg):
         ),
     )
 
+    ee_frame = FrameTransformerCfg(
+            prim_path="{ENV_REGEX_NS}/Robot/arm0_link_fngr",
+            debug_vis=False,
+            target_frames=[FrameTransformerCfg.FrameCfg(prim_path="{ENV_REGEX_NS}/Robot/arm0_link_fngr")]
+        )
+
     box = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Box",
         spawn=sim_utils.CuboidCfg(
@@ -319,7 +328,7 @@ class MscEnvCfg(ManagerBasedRLEnvCfg):
     rewards: SpotRewardsCfg = SpotRewardsCfg()
     terminations: SpotTerminationsCfg = SpotTerminationsCfg()
     events: SpotEventCfg = SpotEventCfg()
-    curriculum: CurriculumCfg = CurriculumCfg()
+    #curriculum: CurriculumCfg = CurriculumCfg()
 
     # Viewer
     viewer = ViewerCfg(eye=(10.5, 10.5, 0.3), origin_type="world", env_index=0, asset_name="robot")
