@@ -167,7 +167,7 @@ class SpotEventCfg:
         mode="reset",
         params={
             "position_range": (-0.2, 0.2),
-            "velocity_range": (-2.5, 2.5),
+            "velocity_range": (0.0, 0.0),
             "asset_cfg": SceneEntityCfg("robot"),
         },
     )
@@ -260,6 +260,12 @@ class SpotRewardsCfg:
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=".*_h[xy]")},
     )
 
+    # joint_vel = RewardTermCfg(
+    #     func=mdp.joint_vel_l2,
+    #     weight=-0.0001,
+    #     params={"asset_cfg": SceneEntityCfg("robot")},
+    # )
+
     # arm_vel = RewardTermCfg(
     #     func=spot_mdp.arm_velocity_penalty,
     #     weight=1.0,
@@ -296,7 +302,7 @@ class SpotSceneCfg(InteractiveSceneCfg):
 
     ee_frame = FrameTransformerCfg(
             prim_path="{ENV_REGEX_NS}/Robot/arm0_link_fngr",
-            debug_vis=False,
+            debug_vis=True,
             target_frames=[FrameTransformerCfg.FrameCfg(prim_path="{ENV_REGEX_NS}/Robot/arm0_link_fngr")]
         )
 
