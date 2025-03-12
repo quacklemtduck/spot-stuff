@@ -166,7 +166,7 @@ class SpotEventCfg:
         func=spot_mdp.reset_joints_around_default,
         mode="reset",
         params={
-            "position_range": (-0.2, 0.2),
+            "position_range": (-0.0, 0.0),
             "velocity_range": (0.0, 0.0),
             "asset_cfg": SceneEntityCfg("robot"),
         },
@@ -240,6 +240,11 @@ class SpotRewardsCfg:
         weight=-1.0e-4,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=".*_h[xy]")},
     )
+    joint_acc_arm = RewardTermCfg(
+        func=spot_mdp.joint_acceleration_penalty,
+        weight=-1.0e-4,
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names="arm0.*")},
+    )
     joint_pos = RewardTermCfg(
         func=spot_mdp.joint_position_penalty,
         weight=-0.7,
@@ -260,12 +265,12 @@ class SpotRewardsCfg:
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=".*_h[xy]")},
     )
 
-    # joint_vel = RewardTermCfg(
-    #     func=mdp.joint_vel_l2,
-    #     weight=-0.0001,
-    #     params={"asset_cfg": SceneEntityCfg("robot")},
-    # )
-
+    joint_vel2 = RewardTermCfg(
+        func=mdp.joint_vel_l2,
+        weight=-0.0001,
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names="arm0.*")},
+    )
+    action_rate = RewardTermCfg(func=mdp.action_rate_l2, weight=-0.0001)
     # arm_vel = RewardTermCfg(
     #     func=spot_mdp.arm_velocity_penalty,
     #     weight=1.0,
@@ -280,7 +285,7 @@ class SpotTerminationsCfg:
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     body_contact = DoneTerm(
         func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=["body", ".*leg"]), "threshold": 1.0},
+        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=["body", ".*leg"]), "threshold": 10.0},
     )
 
 
