@@ -37,6 +37,20 @@ class SpotActionsCfg:
     """Action specifications for the MDP."""
 
     joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=[".*"], scale=0.2, use_default_offset=True)
+    # joint_pos = mdp.JointPositionActionCfg(
+    #     asset_name="robot", 
+    #     joint_names=["(?!arm0_).*"], # All joints except arm joints
+    #     scale=0.2, 
+    #     use_default_offset=True
+    # )
+    
+    # # Arm joints with reduced scale
+    # arm_joint_pos = mdp.JointPositionActionCfg(
+    #     asset_name="robot", 
+    #     joint_names=["arm0_.*"], 
+    #     scale=0.05, # Reduced scale for arm joints
+    #     use_default_offset=True
+    # )
 
 
 @configclass
@@ -237,14 +251,14 @@ class SpotRewardsCfg:
     )
     joint_acc = RewardTermCfg(
         func=spot_mdp.joint_acceleration_penalty,
-        weight=-1.0e-4,
+        weight=-1.0e-3,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=".*_h[xy]")},
     )
-    joint_acc_arm = RewardTermCfg(
-        func=spot_mdp.joint_acceleration_penalty,
-        weight=-1.0e-4,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names="arm0.*")},
-    )
+    # joint_acc_arm = RewardTermCfg(
+    #     func=spot_mdp.joint_acceleration_penalty,
+    #     weight=-1.0e-4,
+    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names="arm0.*")},
+    # )
     joint_pos = RewardTermCfg(
         func=spot_mdp.joint_position_penalty,
         weight=-0.7,
@@ -256,12 +270,12 @@ class SpotRewardsCfg:
     )
     joint_torques = RewardTermCfg(
         func=spot_mdp.joint_torques_penalty,
-        weight=-5.0e-4,
+        weight=-5.0e-3,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=".*")},
     )
     joint_vel = RewardTermCfg(
         func=spot_mdp.joint_velocity_penalty,
-        weight=-1.0e-2,
+        weight=-1.0e-1,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=".*_h[xy]")},
     )
 
@@ -270,7 +284,7 @@ class SpotRewardsCfg:
         weight=-0.0001,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names="arm0.*")},
     )
-    action_rate = RewardTermCfg(func=mdp.action_rate_l2, weight=-0.0001)
+    # action_rate = RewardTermCfg(func=mdp.action_rate_l2, weight=-0.0001)
     # arm_vel = RewardTermCfg(
     #     func=spot_mdp.arm_velocity_penalty,
     #     weight=1.0,
@@ -285,7 +299,7 @@ class SpotTerminationsCfg:
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     body_contact = DoneTerm(
         func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=["body", ".*leg"]), "threshold": 10.0},
+        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=["body", ".*leg"]), "threshold": 2.0},
     )
 
 
@@ -307,21 +321,9 @@ class SpotSceneCfg(InteractiveSceneCfg):
 
     ee_frame = FrameTransformerCfg(
             prim_path="{ENV_REGEX_NS}/Robot/arm0_link_fngr",
-            debug_vis=True,
+            debug_vis=False,
             target_frames=[FrameTransformerCfg.FrameCfg(prim_path="{ENV_REGEX_NS}/Robot/arm0_link_fngr")]
         )
-
-    box = RigidObjectCfg(
-        prim_path="{ENV_REGEX_NS}/Box",
-        spawn=sim_utils.CuboidCfg(
-            size=(0.1,0.1,0.1),
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(kinematic_enabled=True),
-            mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
-            collision_props=sim_utils.CollisionPropertiesCfg(),
-            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.27, 0.63), metallic=0.2),
-        ),
-        init_state=RigidObjectCfg.InitialStateCfg(),
-    )
 
 @configclass
 class CurriculumCfg:
@@ -355,11 +357,16 @@ class MscEnvCfg(ManagerBasedRLEnvCfg):
         self.sim.render_interval = self.decimation
         self.sim.disable_contact_processing = True
         self.sim.physx.gpu_max_rigid_patch_count = 10 * 2**15
-        # self.sim.physics_material = self.scene.ground.physics_material
-        # self.sim.physics_material.static_friction = 1.0
-        # self.sim.physics_material.dynamic_friction = 1.0
-        # self.sim.physics_material.friction_combine_mode = "multiply"
-        # self.sim.physics_material.restitution_combine_mode = "multiply"
+        self.sim.physics_material = sim_utils.RigidBodyMaterialCfg(
+            friction_combine_mode="multiply",
+            restitution_combine_mode="multiply",
+            static_friction=1.0,
+            dynamic_friction=1.0,
+        )
+        self.sim.physics_material.static_friction = 1.0
+        self.sim.physics_material.dynamic_friction = 1.0
+        self.sim.physics_material.friction_combine_mode = "multiply"
+        self.sim.physics_material.restitution_combine_mode = "multiply"
         # update sensor update periods
         # we tick all the sensors based on the smallest update period (physics update period)
         self.scene.contact_forces.update_period = self.sim.dt

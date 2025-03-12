@@ -134,7 +134,7 @@ and the output torque (N*m). It is used to interpolate the output torque based o
 current_dir = os.path.dirname(os.path.abspath(__file__))
 spot_dir = os.path.abspath(os.path.join(current_dir, "..", "..", "..", "tasks", "msc", "spot"))
 # Construct the relative path to the spot_fixed.usd file
-usd_file_path = os.path.join(spot_dir, "assets", "spot_fixed2.usd")
+usd_file_path = os.path.join(spot_dir, "assets", "spot_fixed3.usd")
 
 SPOT_ARM_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
@@ -161,8 +161,8 @@ SPOT_ARM_CFG = ArticulationCfg(
             "f[rl]_hy": 0.9,  # front hip_y
             "h[rl]_hy": 1.1,  # hind hip_y
             ".*_kn": -1.5,  # all knees
-            "arm0_sh1": -0.9 * math.pi,
-            "arm0_el0": 0.9 * math.pi
+            # "arm0_sh1": -0.9 * math.pi,
+            # "arm0_el0": 0.9 * math.pi
 
         },
         joint_vel={".*": 0.0},
