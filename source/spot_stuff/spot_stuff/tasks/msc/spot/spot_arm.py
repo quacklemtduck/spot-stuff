@@ -150,7 +150,7 @@ SPOT_ARM_CFG = ArticulationCfg(
             max_depenetration_velocity=1.0,
         ),
         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-            enabled_self_collisions=True, solver_position_iteration_count=4, solver_velocity_iteration_count=0
+            enabled_self_collisions=False, solver_position_iteration_count=4, solver_velocity_iteration_count=0
         ),
     ),
     init_state=ArticulationCfg.InitialStateCfg(
@@ -161,8 +161,8 @@ SPOT_ARM_CFG = ArticulationCfg(
             "f[rl]_hy": 0.9,  # front hip_y
             "h[rl]_hy": 1.1,  # hind hip_y
             ".*_kn": -1.5,  # all knees
-            # "arm0_sh1": -0.9 * math.pi,
-            # "arm0_el0": 0.9 * math.pi
+            "arm0_sh1": -0.9 * math.pi,
+            "arm0_el0": 0.9 * math.pi
 
         },
         joint_vel={".*": 0.0},

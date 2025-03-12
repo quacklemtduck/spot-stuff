@@ -279,11 +279,11 @@ class SpotRewardsCfg:
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=".*_h[xy]")},
     )
 
-    joint_vel2 = RewardTermCfg(
-        func=mdp.joint_vel_l2,
-        weight=-0.0001,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names="arm0.*")},
-    )
+    # joint_vel2 = RewardTermCfg(
+    #     func=mdp.joint_vel_l2,
+    #     weight=-0.0001,
+    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names="arm0.*")},
+    # )
     # action_rate = RewardTermCfg(func=mdp.action_rate_l2, weight=-0.0001)
     # arm_vel = RewardTermCfg(
     #     func=spot_mdp.arm_velocity_penalty,
@@ -299,7 +299,7 @@ class SpotTerminationsCfg:
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     body_contact = DoneTerm(
         func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=["body", ".*leg"]), "threshold": 2.0},
+        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=["body", ".*leg"]), "threshold": 1.0},
     )
 
 
