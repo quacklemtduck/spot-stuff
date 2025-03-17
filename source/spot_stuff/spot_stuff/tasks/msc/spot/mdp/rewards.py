@@ -195,6 +195,7 @@ def foot_clearance_reward(
 
 def action_smoothness_penalty(env: ManagerBasedRLEnv) -> torch.Tensor:
     """Penalize large instantaneous changes in the network action output"""
+    #print(torch.linalg.norm((env.action_manager.action - env.action_manager.prev_action),dim=1))
     return torch.linalg.norm((env.action_manager.action - env.action_manager.prev_action), dim=1)
 
 
@@ -400,3 +401,17 @@ def catch_box_tanh(env: ManagerBasedRLEnv, ee_frame_cfg: SceneEntityCfg, std: fl
     # Calculate the distance from the initial position
     distances = torch.linalg.norm(current_positions - target, dim=1)
     return 1 - torch.tanh(distances / std)
+
+def feet_on_ground(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg, sensor_cfg: SceneEntityCfg) -> torch.Tensor:
+    asset: RigidObject = env.scene[asset_cfg.name]
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name] # type: ignore
+    net_contact_forces = contact_sensor.data.net_forces_w_history
+    contact_magnitudes = torch.norm(net_contact_forces[:, :, sensor_cfg.body_ids], dim=-1) # type: ignore
+    #print(contact_magnitudes.shape)
+    #is_contact = contact_magnitudes > 1.0
+    is_contact = torch.max(torch.norm(net_contact_forces[:, :, sensor_cfg.body_ids], dim=-1), dim=1)[0] > 1.0
+    # Calculate contact reward - all feet should be in contact
+    num_feet = len(sensor_cfg.body_ids) # type: ignore
+    num_feet_in_contact = torch.sum(is_contact, dim=1)
+    contact_reward = num_feet_in_contact / num_feet
+    return contact_reward

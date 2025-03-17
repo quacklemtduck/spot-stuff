@@ -186,16 +186,16 @@ class SpotEventCfg:
         },
     )
 
-    # interval
-    push_robot = EventTerm(
-        func=mdp.push_by_setting_velocity,
-        mode="interval",
-        interval_range_s=(10.0, 15.0),
-        params={
-            "asset_cfg": SceneEntityCfg("robot"),
-            "velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)},
-        },
-    )
+    # # interval
+    # push_robot = EventTerm(
+    #     func=mdp.push_by_setting_velocity,
+    #     mode="interval",
+    #     interval_range_s=(10.0, 15.0),
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot"),
+    #         "velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)},
+    #     },
+    # )
 
 
 @configclass
@@ -212,11 +212,11 @@ class SpotRewardsCfg:
         params={"std": 1.0, "ramp_rate": 0.5, "ramp_at_vel": 1.0, "asset_cfg": SceneEntityCfg("robot")},
     )
 
-    good_boy_points = RewardTermCfg(
-        func=spot_mdp.good_boy_points,
-        weight=1.0,
-        params={"asset_cfg": SceneEntityCfg("robot", body_names="body")}
-    )
+    # good_boy_points = RewardTermCfg(
+    #     func=spot_mdp.good_boy_points,
+    #     weight=1.0,
+    #     params={"asset_cfg": SceneEntityCfg("robot", body_names="body")}
+    # )
 
     catchy_points = RewardTermCfg(
         func=spot_mdp.catch_box,
@@ -278,18 +278,6 @@ class SpotRewardsCfg:
         weight=-1.0e-1,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=".*_h[xy]")},
     )
-
-    # joint_vel2 = RewardTermCfg(
-    #     func=mdp.joint_vel_l2,
-    #     weight=-0.0001,
-    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names="arm0.*")},
-    # )
-    # action_rate = RewardTermCfg(func=mdp.action_rate_l2, weight=-0.0001)
-    # arm_vel = RewardTermCfg(
-    #     func=spot_mdp.arm_velocity_penalty,
-    #     weight=1.0,
-    #     params={"robot_cfg": SceneEntityCfg("robot", joint_names="arm0_.*")},
-    # )
 
 
 @configclass
