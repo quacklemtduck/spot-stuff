@@ -75,9 +75,9 @@ class SpotCommandsCfg:
         resampling_time_range=(10.0,15.0),
         debug_vis=True,
         ranges=spot_mdp.WorldPoseCommandCfg.Ranges(
-            pos_x=(0.3, 0.3),
+            pos_x=(0.4, 0.5),
             pos_y=(-0.0, 0.0),
-            pos_z=(0.3, 0.3),
+            pos_z=(0.6, 0.8),
         )
     )
 
@@ -222,6 +222,18 @@ class SpotRewardsCfg:
         func=spot_mdp.catch_box,
         weight=-0.2,
         params={"ee_frame_cfg": SceneEntityCfg("ee_frame")}
+    )
+
+    catchy_points_move = RewardTermCfg(
+        func=spot_mdp.catch_box_move,
+        weight=-0.001,
+        params={"ee_frame_cfg": SceneEntityCfg("ee_frame"), "asset_cfg": SceneEntityCfg("robot", joint_names=["arm0_sh.*", "arm0_el0", "arm0_wr0"])}
+    )
+
+    catchy_points_towards = RewardTermCfg(
+        func=spot_mdp.catch_box_move_towards,
+        weight=0.5,
+        params={"asset_cfg": SceneEntityCfg("robot", body_names="arm0_link_fngr")}
     )
 
     catchy_points_tanh = RewardTermCfg(

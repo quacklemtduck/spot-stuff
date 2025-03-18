@@ -415,3 +415,67 @@ def feet_on_ground(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg, sensor_cfg
     num_feet_in_contact = torch.sum(is_contact, dim=1)
     contact_reward = num_feet_in_contact / num_feet
     return contact_reward
+
+
+def catch_box_move(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg, ee_frame_cfg: SceneEntityCfg) -> torch.Tensor:
+    """
+    Reward function for encouraging a robot to move arm to box.
+
+    Args:
+        env: The Isaac Lab environment.
+        asset_cfg: Configuration for the asset (robot).
+        box_cfg: Configuration for the box .
+
+    Returns:
+        A torch.Tensor containing the reward for each robot instance.
+    """
+    # Extract the asset
+    asset: Articulation = env.scene[asset_cfg.name]
+    ee_frame: FrameTransformer = env.scene[ee_frame_cfg.name]
+    # Get current position of the robot
+    #current_positions =  asset.data.body_pos_w[:, robot_cfg.body_ids].squeeze(1) - env.scene.env_origins[:]
+    current_positions = ee_frame.data.target_pos_w.squeeze(1) - env.scene.env_origins
+    # Get the initial position of the robot (assuming it's stored in the environment)
+    target = env.command_manager.get_command("goal_command")[:, :3]
+    
+    # Calculate the distance from the initial position
+    distances = torch.linalg.norm(current_positions - target, dim=1)
+    joint_vels = asset.data.joint_vel[:, asset_cfg.joint_ids]
+    #print("WEEEEEEEEEE")
+    #print(joint_vels[0])
+    joint_vels = torch.linalg.norm(joint_vels, dim=1)
+    #print(distances[0])
+    #print(joint_vels[0])
+    #print(distances / (joint_vels + 1e-6))
+    return distances / (joint_vels + 1e-6)
+
+def catch_box_move_towards(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
+    """
+    Reward function for encouraging a robot to move arm to box.
+
+    Args:
+        env: The Isaac Lab environment.
+        asset_cfg: Configuration for the asset (robot).
+        box_cfg: Configuration for the box .
+
+    Returns:
+        A torch.Tensor containing the reward for each robot instance.
+    """
+    # Extract the asset
+    asset: Articulation = env.scene[asset_cfg.name]
+    asset.data.body_vel_w
+    # Get current position of the robot
+    current_positions =  asset.data.body_pos_w[:, asset_cfg.body_ids].squeeze(1) - env.scene.env_origins[:]
+    #current_positions = ee_frame.data.target_pos_w.squeeze(1) - env.scene.env_origins
+    # Get the initial position of the robot (assuming it's stored in the environment)
+    target = env.command_manager.get_command("goal_command")[:, :3]
+
+    direction_vectors = target - current_positions
+    direction_unit_vectors = direction_vectors / torch.linalg.norm(direction_vectors, dim=1, keepdim=True)
+
+    velocities = asset.data.body_vel_w[:, asset_cfg.body_ids].squeeze(1)
+
+    dot_product = torch.sum(velocities[:, :3] * direction_unit_vectors, dim=1)
+    reward = torch.clamp(dot_product, min=0)
+    #print(reward)
+    return reward
