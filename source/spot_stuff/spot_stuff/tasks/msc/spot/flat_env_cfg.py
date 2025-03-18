@@ -226,7 +226,7 @@ class SpotRewardsCfg:
 
     catchy_points_move = RewardTermCfg(
         func=spot_mdp.catch_box_move,
-        weight=-0.001,
+        weight=-0.1,
         params={"ee_frame_cfg": SceneEntityCfg("ee_frame"), "asset_cfg": SceneEntityCfg("robot", joint_names=["arm0_sh.*", "arm0_el0", "arm0_wr0"])}
     )
 
