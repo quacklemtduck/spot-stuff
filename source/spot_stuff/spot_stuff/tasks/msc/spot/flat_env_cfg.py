@@ -212,11 +212,11 @@ class SpotRewardsCfg:
         params={"std": 1.0, "ramp_rate": 0.5, "ramp_at_vel": 1.0, "asset_cfg": SceneEntityCfg("robot")},
     )
 
-    # good_boy_points = RewardTermCfg(
-    #     func=spot_mdp.good_boy_points,
-    #     weight=1.0,
-    #     params={"asset_cfg": SceneEntityCfg("robot", body_names="body")}
-    # )
+    good_boy_points = RewardTermCfg(
+        func=spot_mdp.good_boy_points,
+        weight=1.0,
+        params={"asset_cfg": SceneEntityCfg("robot", body_names="body")}
+    )
 
     catchy_points = RewardTermCfg(
         func=spot_mdp.catch_box,
@@ -224,11 +224,11 @@ class SpotRewardsCfg:
         params={"ee_frame_cfg": SceneEntityCfg("ee_frame")}
     )
 
-    catchy_points_move = RewardTermCfg(
-        func=spot_mdp.catch_box_move,
-        weight=-0.001,
-        params={"ee_frame_cfg": SceneEntityCfg("ee_frame"), "asset_cfg": SceneEntityCfg("robot", joint_names=["arm0_sh.*", "arm0_el0", "arm0_wr0"])}
-    )
+    # catchy_points_move = RewardTermCfg(
+    #     func=spot_mdp.catch_box_move,
+    #     weight=-0.001,
+    #     params={"ee_frame_cfg": SceneEntityCfg("ee_frame"), "asset_cfg": SceneEntityCfg("robot", joint_names=["arm0_sh.*", "arm0_el0", "arm0_wr0"])}
+    # )
 
     catchy_points_towards = RewardTermCfg(
         func=spot_mdp.catch_box_move_towards,
