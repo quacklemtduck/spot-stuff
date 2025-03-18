@@ -224,17 +224,17 @@ class SpotRewardsCfg:
         params={"ee_frame_cfg": SceneEntityCfg("ee_frame")}
     )
 
-    catchy_points_move = RewardTermCfg(
-        func=spot_mdp.catch_box_move,
-        weight=-0.001,
-        params={"ee_frame_cfg": SceneEntityCfg("ee_frame"), "asset_cfg": SceneEntityCfg("robot", joint_names=["arm0_sh.*", "arm0_el0", "arm0_wr0"])}
-    )
+    # catchy_points_move = RewardTermCfg(
+    #     func=spot_mdp.catch_box_move,
+    #     weight=-0.001,
+    #     params={"ee_frame_cfg": SceneEntityCfg("ee_frame"), "asset_cfg": SceneEntityCfg("robot", joint_names=["arm0_sh.*", "arm0_el0", "arm0_wr0"])}
+    # )
 
-    catchy_points_towards = RewardTermCfg(
-        func=spot_mdp.catch_box_move_towards,
-        weight=0.5,
-        params={"asset_cfg": SceneEntityCfg("robot", body_names="arm0_link_fngr")}
-    )
+    # catchy_points_towards = RewardTermCfg(
+    #     func=spot_mdp.catch_box_move_towards,
+    #     weight=0.5,
+    #     params={"asset_cfg": SceneEntityCfg("robot", body_names="arm0_link_fngr")}
+    # )
 
     catchy_points_tanh = RewardTermCfg(
         func=spot_mdp.catch_box_tanh,
