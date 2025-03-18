@@ -238,7 +238,7 @@ class SpotRewardsCfg:
 
     catchy_points_tanh = RewardTermCfg(
         func=spot_mdp.catch_box_tanh,
-        weight=0.1,
+        weight=1,
         params={"ee_frame_cfg": SceneEntityCfg("ee_frame"), "std": 0.1}
     )
    
