@@ -212,28 +212,34 @@ class SpotRewardsCfg:
         params={"std": 1.0, "ramp_rate": 0.5, "ramp_at_vel": 1.0, "asset_cfg": SceneEntityCfg("robot")},
     )
 
-    # good_boy_points = RewardTermCfg(
-    #     func=spot_mdp.good_boy_points,
-    #     weight=1.0,
-    #     params={"asset_cfg": SceneEntityCfg("robot", body_names="body")}
-    # )
-
-    catchy_points = RewardTermCfg(
-        func=spot_mdp.catch_box,
-        weight=-0.2,
-        params={"ee_frame_cfg": SceneEntityCfg("ee_frame")}
+    good_boy_points = RewardTermCfg(
+        func=spot_mdp.good_boy_points,
+        weight=1.0,
+        params={"asset_cfg": SceneEntityCfg("robot", body_names="body")}
     )
+
+    # catchy_points = RewardTermCfg(
+    #     func=spot_mdp.catch_box,
+    #     weight=-0.2,
+    #     params={"ee_frame_cfg": SceneEntityCfg("ee_frame")}
+    # )
 
     catchy_points_move = RewardTermCfg(
         func=spot_mdp.catch_box_move,
-        weight=-0.001,
+        weight=-0.01,
         params={"ee_frame_cfg": SceneEntityCfg("ee_frame"), "asset_cfg": SceneEntityCfg("robot", joint_names=["arm0_sh.*", "arm0_el0", "arm0_wr0"])}
     )
 
-    catchy_points_towards = RewardTermCfg(
-        func=spot_mdp.catch_box_move_towards,
-        weight=0.5,
-        params={"asset_cfg": SceneEntityCfg("robot", body_names="arm0_link_fngr")}
+    # catchy_points_towards = RewardTermCfg(
+    #     func=spot_mdp.catch_box_move_towards,
+    #     weight=0.5,
+    #     params={"asset_cfg": SceneEntityCfg("robot", body_names="arm0_link_fngr")}
+    # )
+
+    catchy_points = RewardTermCfg(
+        func=spot_mdp.catch_box_old,
+        weight=-0.2,
+        params={"ee_frame_cfg": SceneEntityCfg("ee_frame")}
     )
 
     catchy_points_tanh = RewardTermCfg(
@@ -261,6 +267,16 @@ class SpotRewardsCfg:
             "threshold": 1.0,
         },
     )
+
+    foot_ground = RewardTermCfg(
+        func=spot_mdp.feet_on_ground,
+        weight=0.5,
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names=".*_foot"),
+            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_foot"),
+        },
+    )
+
     joint_acc = RewardTermCfg(
         func=spot_mdp.joint_acceleration_penalty,
         weight=-1.0e-3,
@@ -275,7 +291,7 @@ class SpotRewardsCfg:
         func=spot_mdp.joint_position_penalty,
         weight=-0.7,
         params={
-            "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
+            "asset_cfg": SceneEntityCfg("robot", joint_names="(?!arm0_).*"),
             "stand_still_scale": 5.0,
             "velocity_threshold": 0.5,
         },
@@ -301,6 +317,11 @@ class SpotTerminationsCfg:
         func=mdp.illegal_contact,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=["body", ".*leg"]), "threshold": 1.0},
     )
+
+    # bad_orientation = DoneTerm(
+    #     func=mdp.bad_orientation,
+    #     params={"limit_angle": 0.25}
+    # )
 
 
 @configclass
@@ -341,7 +362,7 @@ class MscEnvCfg(ManagerBasedRLEnvCfg):
     rewards: SpotRewardsCfg = SpotRewardsCfg()
     terminations: SpotTerminationsCfg = SpotTerminationsCfg()
     events: SpotEventCfg = SpotEventCfg()
-    #curriculum: CurriculumCfg = CurriculumCfg()
+    curriculum: CurriculumCfg = CurriculumCfg()
 
     # Viewer
     viewer = ViewerCfg(eye=(10.5, 10.5, 0.3), origin_type="world", env_index=0, asset_name="robot")

@@ -479,3 +479,40 @@ def catch_box_move_towards(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg) ->
     reward = torch.clamp(dot_product, min=0)
     #print(reward)
     return reward
+
+def catch_box_old(env: ManagerBasedRLEnv, ee_frame_cfg: SceneEntityCfg) -> torch.Tensor:
+    """
+    Reward function for encouraging a robot to move arm to box.
+
+    Args:
+        env: The Isaac Lab environment.
+        asset_cfg: Configuration for the asset (robot).
+        box_cfg: Configuration for the box .
+
+    Returns:
+        A torch.Tensor containing the reward for each robot instance.
+    """
+    # Extract the asset
+    ee_frame: FrameTransformer = env.scene[ee_frame_cfg.name]
+    # Get current position of the robot
+    #current_positions =  asset.data.body_pos_w[:, robot_cfg.body_ids].squeeze(1) - env.scene.env_origins[:]
+    current_positions = ee_frame.data.target_pos_w.squeeze(1) - env.scene.env_origins
+    # Get the initial position of the robot (assuming it's stored in the environment)
+    target = env.command_manager.get_command("goal_command")[:, :3]
+    # Calculate the distance from the initial position
+    #print("Distance:",(current_positions - target)[0])
+    distances = torch.linalg.norm(current_positions - target, dim=1)
+    #print("Norm:", distances[0])
+    # Define parameters for the reward function
+    max_distance = 10.0  # Maximum distance to consider for reward
+    reward_scale = 1.0  # Scaling factor for the reward
+
+    # Calculate the reward using an exponential decay based on distance
+    reward = torch.exp(-distances**2 / (2 * (max_distance / 3) ** 2)) * reward_scale
+    #print("Reward:", reward[0])
+    # Optional: Add a small penalty for excessive joint movements (example)
+    # joint_velocities = asset.data.joint_vel  # type: ignore
+    # joint_movement_penalty = torch.sum(torch.abs(joint_velocities), dim=1) * 0.01
+    # reward -= joint_movement_penalty
+
+    return reward

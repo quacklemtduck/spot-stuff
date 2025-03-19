@@ -18,20 +18,19 @@ def catchy_increase(
     val = torch.sum(bc.float()) / env.num_envs
     if val < 0.02:
         catchy = env.reward_manager.get_term_cfg("catchy_points")
-        if catchy.weight > -0.1:
-            print("Setting weight to -0.1")
-            catchy.weight = -0.2
-            print("Set weight")
-            env.reward_manager.set_term_cfg("catchy_points", catchy)
-            print("we have Set the weight")
+        catchy.weight = -0.4
+        vel1 = env.reward_manager.get_term_cfg("base_angular_velocity")
+        vel1.weight = 2.0
+        vel2 = env.reward_manager.get_term_cfg("base_linear_velocity")
+        vel2.weight = 2.0
     else:
         catchy = env.reward_manager.get_term_cfg("catchy_points")
-        if catchy.weight < -0.02:
-            print("Setting weight to -0.01")
-            catchy.weight = -0.01
-            print("Set weight back")
-            env.reward_manager.set_term_cfg("catchy_points", catchy)
-            print("we have Set the weight back")
+        catchy.weight = -0.2
+        vel1 = env.reward_manager.get_term_cfg("base_angular_velocity")
+        vel1.weight = 5.0
+        vel2 = env.reward_manager.get_term_cfg("base_linear_velocity")
+        vel2.weight = 5.0
+
     return val
 
 # RewardTermCfg(func=<function catch_box at 0x7fa7ec0b2830>, 
