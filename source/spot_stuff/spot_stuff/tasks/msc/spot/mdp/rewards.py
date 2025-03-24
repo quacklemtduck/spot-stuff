@@ -355,7 +355,7 @@ def catch_box(env: ManagerBasedRLEnv, ee_frame_cfg: SceneEntityCfg) -> torch.Ten
     ee_frame: FrameTransformer = env.scene[ee_frame_cfg.name]
     # Get current position of the robot
     #current_positions =  asset.data.body_pos_w[:, robot_cfg.body_ids].squeeze(1) - env.scene.env_origins[:]
-    current_positions = ee_frame.data.target_pos_w.squeeze(1) - env.scene.env_origins
+    current_positions = ee_frame.data.source_pos_w - env.scene.env_origins
     # Get the initial position of the robot (assuming it's stored in the environment)
     target = env.command_manager.get_command("goal_command")[:, :3]
     
@@ -394,7 +394,7 @@ def catch_box_tanh(env: ManagerBasedRLEnv, ee_frame_cfg: SceneEntityCfg, std: fl
     ee_frame: FrameTransformer = env.scene[ee_frame_cfg.name]
     # Get current position of the robot
     #current_positions =  asset.data.body_pos_w[:, robot_cfg.body_ids].squeeze(1) - env.scene.env_origins[:]
-    current_positions = ee_frame.data.target_pos_w.squeeze(1) - env.scene.env_origins
+    current_positions = ee_frame.data.source_pos_w - env.scene.env_origins
     # Get the initial position of the robot (assuming it's stored in the environment)
     target = env.command_manager.get_command("goal_command")[:, :3]
     
@@ -434,7 +434,7 @@ def catch_box_move(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg, ee_frame_c
     ee_frame: FrameTransformer = env.scene[ee_frame_cfg.name]
     # Get current position of the robot
     #current_positions =  asset.data.body_pos_w[:, robot_cfg.body_ids].squeeze(1) - env.scene.env_origins[:]
-    current_positions = ee_frame.data.target_pos_w.squeeze(1) - env.scene.env_origins
+    current_positions = ee_frame.data.source_pos_w - env.scene.env_origins
     # Get the initial position of the robot (assuming it's stored in the environment)
     target = env.command_manager.get_command("goal_command")[:, :3]
     

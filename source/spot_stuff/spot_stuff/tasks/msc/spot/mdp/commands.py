@@ -43,7 +43,7 @@ class WorldPoseCommand(CommandTerm):
         # transform command from base frame to simulation world frame
         # compute the error
         pos_error, rot_error = compute_pose_error(
-            self.pose_command_w[:, :3],
+            self.pose_command_w[:, :3] + self.origins,
             self.pose_command_w[:, 3:],
             self.robot.data.body_link_state_w[:, self.body_idx, :3],
             self.robot.data.body_link_state_w[:, self.body_idx, 3:7],
