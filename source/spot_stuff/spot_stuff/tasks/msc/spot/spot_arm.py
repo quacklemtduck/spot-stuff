@@ -134,14 +134,14 @@ and the output torque (N*m). It is used to interpolate the output torque based o
 current_dir = os.path.dirname(os.path.abspath(__file__))
 spot_dir = os.path.abspath(os.path.join(current_dir, "..", "..", "..", "tasks", "msc", "spot"))
 # Construct the relative path to the spot_fixed.usd file
-usd_file_path = os.path.join(spot_dir, "assets", "spot_fixed4.usd")
+usd_file_path = os.path.join(spot_dir, "assets", "spot_fixed5.usd")
 
 SPOT_ARM_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
         usd_path=usd_file_path,
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
-            disable_gravity=False,
+            disable_gravity=True,
             retain_accelerations=False,
             linear_damping=0.0,
             angular_damping=0.0,
@@ -154,7 +154,7 @@ SPOT_ARM_CFG = ArticulationCfg(
         ),
     ),
     init_state=ArticulationCfg.InitialStateCfg(
-        pos=(0.0, 0.0, 0.7),
+        pos=(0.0, 0.0, 0.5),
         joint_pos={
             "[fh]l_hx": 0.1,  # all left hip_x
             "[fh]r_hx": -0.1,  # all right hip_x
@@ -189,9 +189,9 @@ SPOT_ARM_CFG = ArticulationCfg(
         ),
         "spot_arm": DelayedPDActuatorCfg(
             joint_names_expr=["arm0.*"],
-            effort_limit=45.0,
-            stiffness=60.0,
-            damping=1.5,
+            effort_limit=None,
+            stiffness=None,
+            damping=None,
             min_delay=0,  # physics time steps (min: 2.0*0=0.0ms)
             max_delay=4,  # physics time steps (max: 2.0*4=8.0ms)
             friction=0.05

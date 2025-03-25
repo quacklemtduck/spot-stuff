@@ -26,6 +26,7 @@ import isaaclab.envs.mdp as mdp
 from isaaclab.managers import CurriculumTermCfg as CurrTerm
 from isaaclab.sensors import FrameTransformerCfg
 from isaaclab.sensors.frame_transformer.frame_transformer_cfg import OffsetCfg
+from isaaclab.sim.schemas import modify_articulation_root_properties
 ##
 # Pre-defined configs
 ##
@@ -36,7 +37,9 @@ from .spot_arm import SPOT_ARM_CFG
 class SpotActionsCfg:
     """Action specifications for the MDP."""
 
-    joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=[".*"], scale=0.2, use_default_offset=True)
+    joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=["arm0_.*"], scale=0.5, use_default_offset=True)
+    #joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=["arm0_el.*","arm0_sh.*"], scale=0.5, use_default_offset=True)
+
     # joint_pos = mdp.JointPositionActionCfg(
     #     asset_name="robot", 
     #     joint_names=["(?!arm0_).*"], # All joints except arm joints
@@ -72,12 +75,12 @@ class SpotCommandsCfg:
     goal_command = spot_mdp.WorldPoseCommandCfg(
         asset_name="robot",
         body_name="arm0_link_fngr", # type: ignore
-        resampling_time_range=(10.0,15.0),
+        resampling_time_range=(4.0, 4.0),
         debug_vis=True,
         ranges=spot_mdp.WorldPoseCommandCfg.Ranges(
-            pos_x=(0.4, 0.5),
-            pos_y=(-0.0, 0.0),
-            pos_z=(0.6, 0.8),
+            pos_x=(0.5, 0.8),
+            pos_y=(-0.4, 0.4),
+            pos_z=(0.5, 0.8),
         )
     )
 
@@ -91,18 +94,18 @@ class SpotObservationsCfg:
         """Observations for policy group."""
 
         # `` observation terms (order preserved)
-        base_lin_vel = ObsTerm(
-            func=mdp.base_lin_vel, params={"asset_cfg": SceneEntityCfg("robot")}, noise=Unoise(n_min=-0.1, n_max=0.1)
-        )
-        base_ang_vel = ObsTerm(
-            func=mdp.base_ang_vel, params={"asset_cfg": SceneEntityCfg("robot")}, noise=Unoise(n_min=-0.1, n_max=0.1)
-        )
-        projected_gravity = ObsTerm(
-            func=mdp.projected_gravity,
-            params={"asset_cfg": SceneEntityCfg("robot")},
-            noise=Unoise(n_min=-0.05, n_max=0.05),
-        )
-        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"})
+        # base_lin_vel = ObsTerm(
+        #     func=mdp.base_lin_vel, params={"asset_cfg": SceneEntityCfg("robot")}, noise=Unoise(n_min=-0.1, n_max=0.1)
+        # )
+        # base_ang_vel = ObsTerm(
+        #     func=mdp.base_ang_vel, params={"asset_cfg": SceneEntityCfg("robot")}, noise=Unoise(n_min=-0.1, n_max=0.1)
+        # )
+        # projected_gravity = ObsTerm(
+        #     func=mdp.projected_gravity,
+        #     params={"asset_cfg": SceneEntityCfg("robot")},
+        #     noise=Unoise(n_min=-0.05, n_max=0.05),
+        # )
+        #velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"})
         # velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"})
         joint_pos = ObsTerm(
             func=mdp.joint_pos_rel, params={"asset_cfg": SceneEntityCfg("robot")}, noise=Unoise(n_min=-0.05, n_max=0.05)
@@ -121,7 +124,7 @@ class SpotObservationsCfg:
         actions = ObsTerm(func=mdp.last_action)
 
         def __post_init__(self):
-            self.enable_corruption = False
+            self.enable_corruption = True
             self.concatenate_terms = True
 
     # observation groups
@@ -133,27 +136,27 @@ class SpotEventCfg:
     """Configuration for randomization."""
 
     # startup
-    physics_material = EventTerm(
-        func=mdp.randomize_rigid_body_material,  # type: ignore
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
-            "static_friction_range": (0.3, 1.0),
-            "dynamic_friction_range": (0.3, 0.8),
-            "restitution_range": (0.0, 0.0),
-            "num_buckets": 64,
-        },
-    )
+    # physics_material = EventTerm(
+    #     func=mdp.randomize_rigid_body_material,  # type: ignore
+    #     mode="startup",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
+    #         "static_friction_range": (0.3, 1.0),
+    #         "dynamic_friction_range": (0.3, 0.8),
+    #         "restitution_range": (0.0, 0.0),
+    #         "num_buckets": 64,
+    #     },
+    # )
 
-    add_base_mass = EventTerm(
-        func=mdp.randomize_rigid_body_mass,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names="body"),
-            "mass_distribution_params": (-2.5, 2.5),
-            "operation": "add",
-        },
-    )
+    # add_base_mass = EventTerm(
+    #     func=mdp.randomize_rigid_body_mass,
+    #     mode="startup",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", body_names="body"),
+    #         "mass_distribution_params": (-2.5, 2.5),
+    #         "operation": "add",
+    #     },
+    # )
 
     # reset
     base_external_force_torque = EventTerm(
@@ -201,28 +204,11 @@ class SpotEventCfg:
 @configclass
 class SpotRewardsCfg:
 
-    base_angular_velocity = RewardTermCfg(
-        func=spot_mdp.base_angular_velocity_reward,
-        weight=5.0,
-        params={"std": 2.0, "asset_cfg": SceneEntityCfg("robot")},
+    catchy_points = RewardTermCfg(
+        func=spot_mdp.catch_box,
+        weight=-0.2,
+        params={"ee_frame_cfg": SceneEntityCfg("ee_frame")}
     )
-    base_linear_velocity = RewardTermCfg(
-        func=spot_mdp.base_linear_velocity_reward,
-        weight=5.0,
-        params={"std": 1.0, "ramp_rate": 0.5, "ramp_at_vel": 1.0, "asset_cfg": SceneEntityCfg("robot")},
-    )
-
-    good_boy_points = RewardTermCfg(
-        func=spot_mdp.good_boy_points,
-        weight=1.0,
-        params={"asset_cfg": SceneEntityCfg("robot", body_names="body")}
-    )
-
-    # catchy_points = RewardTermCfg(
-    #     func=spot_mdp.catch_box,
-    #     weight=-0.2,
-    #     params={"ee_frame_cfg": SceneEntityCfg("ee_frame")}
-    # )
 
     # catchy_points_move = RewardTermCfg(
     #     func=spot_mdp.catch_box_move,
@@ -236,11 +222,11 @@ class SpotRewardsCfg:
     #     params={"asset_cfg": SceneEntityCfg("robot", body_names="arm0_link_fngr")}
     # )
 
-    catchy_points = RewardTermCfg(
-        func=spot_mdp.catch_box_old,
-        weight=-0.2,
-        params={"ee_frame_cfg": SceneEntityCfg("ee_frame")}
-    )
+    # catchy_points = RewardTermCfg(
+    #     func=spot_mdp.catch_box_old,
+    #     weight=-0.2,
+    #     params={"ee_frame_cfg": SceneEntityCfg("ee_frame")}
+    # )
 
     catchy_points_tanh = RewardTermCfg(
         func=spot_mdp.catch_box_tanh,
@@ -250,62 +236,20 @@ class SpotRewardsCfg:
    
 
     # -- penalties
-    action_smoothness = RewardTermCfg(func=spot_mdp.action_smoothness_penalty, weight=-1.0)
+    #action_smoothness = RewardTermCfg(func=spot_mdp.action_smoothness_penalty, weight=-1.0)
 
-    base_motion = RewardTermCfg(
-        func=spot_mdp.base_motion_penalty, weight=-2.0, params={"asset_cfg": SceneEntityCfg("robot")}
-    )
-    base_orientation = RewardTermCfg(
-        func=spot_mdp.base_orientation_penalty, weight=-3.0, params={"asset_cfg": SceneEntityCfg("robot")}
-    )
-    foot_slip = RewardTermCfg(
-        func=spot_mdp.foot_slip_penalty,
-        weight=-0.5,
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names=".*_foot"),
-            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_foot"),
-            "threshold": 1.0,
-        },
-    )
-
-    foot_ground = RewardTermCfg(
-        func=spot_mdp.feet_on_ground,
-        weight=0.5,
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names=".*_foot"),
-            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_foot"),
-        },
-    )
-
-    joint_acc = RewardTermCfg(
-        func=spot_mdp.joint_acceleration_penalty,
-        weight=-1.0e-3,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=".*_h[xy]")},
-    )
-    # joint_acc_arm = RewardTermCfg(
-    #     func=spot_mdp.joint_acceleration_penalty,
-    #     weight=-1.0e-4,
-    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names="arm0.*")},
-    # )
-    joint_pos = RewardTermCfg(
-        func=spot_mdp.joint_position_penalty,
-        weight=-0.7,
-        params={
-            "asset_cfg": SceneEntityCfg("robot", joint_names="(?!arm0_).*"),
-            "stand_still_scale": 5.0,
-            "velocity_threshold": 0.5,
-        },
-    )
-    joint_torques = RewardTermCfg(
-        func=spot_mdp.joint_torques_penalty,
-        weight=-5.0e-3,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=".*")},
-    )
+    action_rate = RewardTermCfg(func=mdp.action_rate_l2, weight=-0.0001)
     joint_vel = RewardTermCfg(
-        func=spot_mdp.joint_velocity_penalty,
-        weight=-1.0e-1,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=".*_h[xy]")},
+        func=mdp.joint_vel_l2,
+        weight=-0.0001,
+        params={"asset_cfg": SceneEntityCfg("robot")},
     )
+
+    # joint_torques = RewardTermCfg(
+    #     func=spot_mdp.joint_torques_penalty,
+    #     weight=-5.0e-3,
+    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=".*")},
+    # )
 
 
 @configclass
@@ -313,10 +257,10 @@ class SpotTerminationsCfg:
     """Termination terms for the MDP."""
 
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
-    body_contact = DoneTerm(
-        func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=["body", ".*leg"]), "threshold": 1.0},
-    )
+    # body_contact = DoneTerm(
+    #     func=mdp.illegal_contact,
+    #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=["body", ".*leg"]), "threshold": 1.0},
+    # )
 
     # bad_orientation = DoneTerm(
     #     func=mdp.bad_orientation,
@@ -348,7 +292,14 @@ class SpotSceneCfg(InteractiveSceneCfg):
 
 @configclass
 class CurriculumCfg:
-    catchy_curriculum = CurrTerm(func=spot_mdp.catchy_increase) # type: ignore
+    #catchy_curriculum = CurrTerm(func=spot_mdp.catchy_increase) # type: ignore
+    action_rate = CurrTerm(
+        func=mdp.modify_reward_weight, params={"term_name": "action_rate", "weight": -0.005, "num_steps": 8500}
+    )
+
+    joint_vel = CurrTerm(
+        func=mdp.modify_reward_weight, params={"term_name": "joint_vel", "weight": -0.001, "num_steps": 8500}
+    )
 
 @configclass
 class MscEnvCfg(ManagerBasedRLEnvCfg):
