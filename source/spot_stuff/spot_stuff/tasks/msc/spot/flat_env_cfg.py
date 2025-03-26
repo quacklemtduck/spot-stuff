@@ -37,7 +37,7 @@ from .spot_arm import SPOT_ARM_CFG
 class SpotActionsCfg:
     """Action specifications for the MDP."""
 
-    joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=["arm0_.*"], scale=0.5, use_default_offset=True)
+    joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=["arm0.*"], scale=0.5, use_default_offset=True)
     #joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=["arm0_el.*","arm0_sh.*"], scale=0.5, use_default_offset=True)
 
     # joint_pos = mdp.JointPositionActionCfg(
@@ -124,7 +124,7 @@ class SpotObservationsCfg:
         actions = ObsTerm(func=mdp.last_action)
 
         def __post_init__(self):
-            self.enable_corruption = True
+            self.enable_corruption = False
             self.concatenate_terms = True
 
     # observation groups

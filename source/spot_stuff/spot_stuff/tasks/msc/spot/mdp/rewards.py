@@ -356,11 +356,13 @@ def catch_box(env: ManagerBasedRLEnv, ee_frame_cfg: SceneEntityCfg) -> torch.Ten
     # Get current position of the robot
     #current_positions =  asset.data.body_pos_w[:, robot_cfg.body_ids].squeeze(1) - env.scene.env_origins[:]
     current_positions = ee_frame.data.source_pos_w - env.scene.env_origins
+    #print("Current" ,current_positions[0])
     # Get the initial position of the robot (assuming it's stored in the environment)
     target = env.command_manager.get_command("goal_command")[:, :3]
-    
+    #print(target[0])
     # Calculate the distance from the initial position
     distances = torch.linalg.norm(current_positions - target, dim=1)
+    #print(distances[0])
     return distances
     # # Define parameters for the reward function
     # max_distance = 10.0  # Maximum distance to consider for reward
