@@ -74,7 +74,7 @@ class SpotCommandsCfg:
 
     goal_command = spot_mdp.WorldPoseCommandCfg(
         asset_name="robot",
-        body_name="arm0_link_fngr", # type: ignore
+        body_name="body", # type: ignore
         resampling_time_range=(4.0, 4.0),
         debug_vis=True,
         ranges=spot_mdp.WorldPoseCommandCfg.Ranges(
@@ -285,7 +285,7 @@ class SpotSceneCfg(InteractiveSceneCfg):
     )
 
     ee_frame = FrameTransformerCfg(
-        prim_path="{ENV_REGEX_NS}/Robot/arm0_link_fngr",
+        prim_path="{ENV_REGEX_NS}/Robot/body",
         debug_vis=False,
         target_frames=[FrameTransformerCfg.FrameCfg(prim_path="{ENV_REGEX_NS}/Robot/arm0_link_fngr")]
     )

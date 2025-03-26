@@ -14,6 +14,6 @@ def object_obs(
 
     ee_frame: FrameTransformer = env.scene[ee_frame_cfg.name]
 
-    position = ee_frame.data.target_pos_w.squeeze(1) - env.scene.env_origins[:]
+    position = ee_frame.data.target_pos_source.squeeze(1)
     return position
     

@@ -37,7 +37,7 @@ class WorldPoseCommand(CommandTerm):
     
     @property
     def command(self) -> torch.Tensor:
-        return self.pose_command_w
+        return self.pose_command_w[:, :3] - (self.robot.data.body_link_state_w[:, self.body_idx, :3] - self.origins)
     
     def _update_metrics(self):
         # transform command from base frame to simulation world frame
