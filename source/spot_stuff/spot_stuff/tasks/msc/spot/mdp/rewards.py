@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
     from isaaclab.managers import RewardTermCfg
 
-
+from isaaclab.utils.math import combine_frame_transforms, quat_error_magnitude, quat_mul
 ##
 # Task Rewards
 ##
@@ -518,3 +518,22 @@ def catch_box_old(env: ManagerBasedRLEnv, ee_frame_cfg: SceneEntityCfg) -> torch
     # reward -= joint_movement_penalty
 
     return reward
+
+
+def orientation_command_error(env: ManagerBasedRLEnv, ee_frame_cfg: SceneEntityCfg) -> torch.Tensor:
+    """Penalize tracking orientation error using shortest path.
+
+    The function computes the orientation error between the desired orientation (from the command) and the
+    current orientation of the asset's body (in world frame). The orientation error is computed as the shortest
+    path between the desired and current orientations.
+    """
+    # extract the asset (to enable type hinting)
+    ee_frame: FrameTransformer = env.scene[ee_frame_cfg.name]
+    # Get current position of the robot
+    #current_positions =  asset.data.body_pos_w[:, robot_cfg.body_ids].squeeze(1) - env.scene.env_origins[:]
+    # obtain the desired and current orientations
+    command = env.command_manager.get_command("goal_command")
+    des_quat = command[:,3:7]
+    curr_quat = ee_frame.data.target_quat_w.squeeze(1)
+
+    return quat_error_magnitude(des_quat, curr_quat)

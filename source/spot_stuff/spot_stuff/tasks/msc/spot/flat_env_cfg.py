@@ -206,7 +206,7 @@ class SpotRewardsCfg:
 
     catchy_points = RewardTermCfg(
         func=spot_mdp.catch_box,
-        weight=-0.2,
+        weight=-0.3,
         params={"ee_frame_cfg": SceneEntityCfg("ee_frame")}
     )
 
@@ -232,6 +232,12 @@ class SpotRewardsCfg:
         func=spot_mdp.catch_box_tanh,
         weight=0.1,
         params={"ee_frame_cfg": SceneEntityCfg("ee_frame"), "std": 0.1}
+    )
+
+    end_effector_orientation_tracking = RewardTermCfg(
+        func=spot_mdp.orientation_command_error,
+        weight=-0.1,
+        params={"ee_frame_cfg": SceneEntityCfg("ee_frame")},
     )
    
 
