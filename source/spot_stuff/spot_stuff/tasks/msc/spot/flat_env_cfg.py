@@ -37,7 +37,13 @@ from .spot_arm import SPOT_ARM_CFG
 class SpotActionsCfg:
     """Action specifications for the MDP."""
 
-    joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=["arm0.*"], scale=0.5, use_default_offset=True)
+    joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=["arm0_el.*", "arm0_sh.*", "arm0_wr.*"], scale=0.5, use_default_offset=True)
+    gripper_action = mdp.BinaryJointPositionActionCfg(
+        asset_name="robot",
+        joint_names=["arm0_f1x"],
+        open_command_expr={"arm0_f1x": -1.5},
+        close_command_expr={"arm0_f1x": 0.0}
+    )
     #joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=["arm0_el.*","arm0_sh.*"], scale=0.5, use_default_offset=True)
 
     # joint_pos = mdp.JointPositionActionCfg(
@@ -84,6 +90,10 @@ class SpotCommandsCfg:
         )
     )
 
+    open_close_command = spot_mdp.OpenCloseCommandCfg(
+        resampling_time_range=(10, 10)
+    )
+
 
 @configclass
 class SpotObservationsCfg:
@@ -115,6 +125,7 @@ class SpotObservationsCfg:
         )
 
         arm_command = ObsTerm(func=mdp.generated_commands, params={"command_name": "goal_command"})
+        open_command = ObsTerm(func=mdp.generated_commands, params={"command_name": "open_close_command"})
         
         finger_obs = ObsTerm(func=spot_mdp.object_obs)
         # arm_vel = ObsTerm(
@@ -251,6 +262,12 @@ class SpotRewardsCfg:
         params={"asset_cfg": SceneEntityCfg("robot")},
     )
 
+    open_close = RewardTermCfg(
+        func=spot_mdp.open_close_command_error,
+        weight=-1,
+        params={"robot_cfg": SceneEntityCfg("robot", joint_names=["arm0_f1x"])}
+        )
+
     # joint_torques = RewardTermCfg(
     #     func=spot_mdp.joint_torques_penalty,
     #     weight=-5.0e-3,
@@ -292,7 +309,7 @@ class SpotSceneCfg(InteractiveSceneCfg):
 
     ee_frame = FrameTransformerCfg(
         prim_path="{ENV_REGEX_NS}/Robot/body",
-        debug_vis=False,
+        debug_vis=True,
         target_frames=[FrameTransformerCfg.FrameCfg(prim_path="{ENV_REGEX_NS}/Robot/arm0_link_fngr")]
     )
 
@@ -349,6 +366,7 @@ class MscEnvCfg(ManagerBasedRLEnvCfg):
         # we tick all the sensors based on the smallest update period (physics update period)
         self.scene.contact_forces.update_period = self.sim.dt
 
+        self.scene.ee_frame.visualizer_cfg.markers["frame"].scale = (0.1, 0.1, 0.1) # type: ignore
         # switch robot to Spot-d
 
 

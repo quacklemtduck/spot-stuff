@@ -9,7 +9,7 @@ from isaaclab.markers import VisualizationMarkers
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedEnv
-    from .commands_cfg import WorldPoseCommandCfg
+    from .commands_cfg import WorldPoseCommandCfg, OpenCloseCommandCfg
 
 
 @configclass
@@ -92,3 +92,41 @@ class WorldPoseCommand(CommandTerm):
         # update the markers
         # -- goal pose
         self.goal_pose_visualizer.visualize(self.pose_command_w[:, :3] + self.origins[:,:3], self.pose_command_w[:, 3:])
+
+@configclass
+class OpenCloseCommand(CommandTerm):
+    cfg: "OpenCloseCommandCfg" = MISSING # type: ignore
+
+    def __init__(self, cfg: "WorldPoseCommandCfg", env: "ManagerBasedEnv"):
+        super().__init__(cfg, env) # type: ignore
+        self.open = torch.randint(0,2, (self.num_envs, 1), device=self.device)
+        self.metrics["position_error"] = torch.zeros(self.num_envs, device=self.device)
+        # -- metrics
+    def __str__(self) -> str:
+        msg = "OpenCloseCommand:\n"
+        return msg
+    
+    @property
+    def command(self) -> torch.Tensor:
+        #return torch.zeros_like(self.open, device=self.device)
+        return self.open
+    
+    def _update_metrics(self):
+        # transform command from base frame to simulation world frame
+        # compute the error
+        pass
+
+    def _resample_command(self, env_ids: Sequence[int]):
+        # sample new pose targets
+        # -- position
+        r = torch.randint(0,2, (len(env_ids), 1), device=self.device)
+        self.open[env_ids] = r
+
+    def _update_command(self):
+        pass
+
+    def _set_debug_vis_impl(self, debug_vis: bool):
+        pass
+
+    def _debug_vis_callback(self, event):
+        pass

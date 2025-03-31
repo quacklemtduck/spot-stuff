@@ -535,5 +535,27 @@ def orientation_command_error(env: ManagerBasedRLEnv, ee_frame_cfg: SceneEntityC
     command = env.command_manager.get_command("goal_command")
     des_quat = command[:,3:7]
     curr_quat = ee_frame.data.target_quat_w.squeeze(1)
-
     return quat_error_magnitude(des_quat, curr_quat)
+
+
+def open_close_command_error(env: ManagerBasedRLEnv, robot_cfg: SceneEntityCfg) -> torch.Tensor:
+    """Penalize tracking orientation error using shortest path.
+
+    The function computes the orientation error between the desired orientation (from the command) and the
+    current orientation of the asset's body (in world frame). The orientation error is computed as the shortest
+    path between the desired and current orientations.
+    """
+    # extract the asset (to enable type hinting)
+    robot: Articulation = env.scene[robot_cfg.name]
+    joint_pos = robot.data.joint_pos[:, robot_cfg.joint_ids]
+    #print("Before", joint_pos)
+    joint_pos = joint_pos.abs().to(torch.int).clamp(0, 1).squeeze()
+    #print("pos", joint_pos)
+    # Get current position of the robot
+    #current_positions =  asset.data.body_pos_w[:, robot_cfg.body_ids].squeeze(1) - env.scene.env_origins[:]
+    # obtain the desired and current orientations
+    command = env.command_manager.get_command("open_close_command").squeeze()
+    #print(command)
+    reward = joint_pos ^ command
+    #print(reward)
+    return reward

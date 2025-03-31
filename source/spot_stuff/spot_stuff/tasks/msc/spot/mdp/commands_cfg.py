@@ -1,7 +1,7 @@
 from isaaclab.managers import CommandTermCfg, CommandTerm
 from isaaclab.utils import configclass
 from dataclasses import MISSING
-from .commands import WorldPoseCommand
+from .commands import WorldPoseCommand, OpenCloseCommand
 
 from isaaclab.markers import VisualizationMarkersCfg
 from isaaclab.markers.config import BLUE_ARROW_X_MARKER_CFG, FRAME_MARKER_CFG, GREEN_ARROW_X_MARKER_CFG
@@ -37,3 +37,9 @@ class WorldPoseCommandCfg(CommandTermCfg):
     # Set the scale of the visualization markers to (0.1, 0.1, 0.1)
     goal_pose_visualizer_cfg.markers["frame"].scale = (0.1, 0.1, 0.1) # type: ignore
     current_pose_visualizer_cfg.markers["frame"].scale = (0.1, 0.1, 0.1) # type: ignore
+
+
+@configclass
+class OpenCloseCommandCfg(CommandTermCfg):
+    class_type: type = OpenCloseCommand
+
