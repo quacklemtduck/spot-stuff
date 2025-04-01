@@ -37,7 +37,7 @@ from .spot_arm import SPOT_ARM_CFG
 class SpotActionsCfg:
     """Action specifications for the MDP."""
 
-    joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=["arm0_el.*", "arm0_sh.*", "arm0_wr.*"], scale=0.5, use_default_offset=True)
+    joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=["arm0_el.*", "arm0_sh.*", "arm0_wr.*"], scale=0.2, use_default_offset=True)
     gripper_action = mdp.BinaryJointPositionActionCfg(
         asset_name="robot",
         joint_names=["arm0_f1x"],
@@ -350,7 +350,6 @@ class MscEnvCfg(ManagerBasedRLEnvCfg):
         # simulation settings
         self.sim.dt = 0.002  # 500 Hz
         self.sim.render_interval = self.decimation
-        self.sim.disable_contact_processing = True
         self.sim.physx.gpu_max_rigid_patch_count = 10 * 2**15
         self.sim.physics_material = sim_utils.RigidBodyMaterialCfg(
             friction_combine_mode="multiply",

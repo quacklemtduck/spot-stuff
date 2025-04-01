@@ -108,7 +108,7 @@ class OpenCloseCommand(CommandTerm):
     
     @property
     def command(self) -> torch.Tensor:
-        #return torch.zeros_like(self.open, device=self.device)
+        #return torch.ones_like(self.open, device=self.device)
         return self.open
     
     def _update_metrics(self):
