@@ -81,6 +81,9 @@ class SpotCommandsCfg:
             pos_x=(0.5, 0.8),
             pos_y=(-0.4, 0.4),
             pos_z=(0.5, 0.8),
+            roll=(0.0, 0.0),
+            pitch=(math.pi / 2, math.pi / 2),  # depends on end-effector axis
+            yaw=(0, 0),
         )
     )
 

@@ -67,6 +67,14 @@ class WorldPoseCommand(CommandTerm):
         self.pose_command_w[env_ids, 0] = r.uniform_(*self.cfg.ranges.pos_x)
         self.pose_command_w[env_ids, 1] = r.uniform_(*self.cfg.ranges.pos_y)
         self.pose_command_w[env_ids, 2] = r.uniform_(*self.cfg.ranges.pos_z)
+        # -- orientation
+        euler_angles = torch.zeros_like(self.pose_command_w[env_ids, :3])
+        euler_angles[:, 0].uniform_(*self.cfg.ranges.roll)
+        euler_angles[:, 1].uniform_(*self.cfg.ranges.pitch)
+        euler_angles[:, 2].uniform_(*self.cfg.ranges.yaw)
+        quat = quat_from_euler_xyz(euler_angles[:, 0], euler_angles[:, 1], euler_angles[:, 2])
+        # make sure the quaternion has real part as positive
+        self.pose_command_w[env_ids, 3:] = quat
 
     def _update_command(self):
         pass

@@ -23,6 +23,15 @@ class WorldPoseCommandCfg(CommandTermCfg):
 
         pos_z: tuple[float, float] = MISSING # type: ignore
         """Range for the z position (in m)."""
+        
+        roll: tuple[float, float] = MISSING # type: ignore
+        """Range for the roll angle (in rad)."""
+
+        pitch: tuple[float, float] = MISSING # type: ignore
+        """Range for the pitch angle (in rad)."""
+
+        yaw: tuple[float, float] = MISSING # type: ignore
+        """Range for the yaw angle (in rad)."""
     
     ranges: Ranges = MISSING # type: ignore
 
