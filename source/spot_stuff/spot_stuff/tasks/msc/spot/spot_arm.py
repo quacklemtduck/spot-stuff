@@ -187,11 +187,65 @@ SPOT_ARM_CFG = ArticulationCfg(
             max_delay=4,  # physics time steps (max: 2.0*4=8.0ms)
             friction=0.05
         ),
-        "spot_arm": DelayedPDActuatorCfg(
-            joint_names_expr=["arm0.*"],
-            effort_limit=None,
-            stiffness=None,
-            damping=None,
+        "spot_sh1": DelayedPDActuatorCfg(
+            joint_names_expr=["arm0_sh1"],
+            effort_limit=181.8,
+            stiffness=60.0,
+            damping=1.5,
+            min_delay=0,  # physics time steps (min: 2.0*0=0.0ms)
+            max_delay=4,  # physics time steps (max: 2.0*4=8.0ms)
+            friction=0.05
+        ),
+        "spot_el0": DelayedPDActuatorCfg(
+            joint_names_expr=["arm0_el0"],
+            effort_limit=90.9,
+            stiffness=60.0,
+            damping=1.5,
+            min_delay=0,  # physics time steps (min: 2.0*0=0.0ms)
+            max_delay=4,  # physics time steps (max: 2.0*4=8.0ms)
+            friction=0.05
+        ),
+        "spot_el1": DelayedPDActuatorCfg(
+            joint_names_expr=["arm0_el1"],
+            effort_limit=30.3,
+            stiffness=60.0,
+            damping=1.5,
+            min_delay=0,  # physics time steps (min: 2.0*0=0.0ms)
+            max_delay=4,  # physics time steps (max: 2.0*4=8.0ms)
+            friction=0.05
+        ),
+        "spot_wr0": DelayedPDActuatorCfg(
+            joint_names_expr=["arm0_wr0"],
+            effort_limit=30.3,
+            stiffness=60.0,
+            damping=1.5,
+            min_delay=0,  # physics time steps (min: 2.0*0=0.0ms)
+            max_delay=4,  # physics time steps (max: 2.0*4=8.0ms)
+            friction=0.05
+        ),
+        "spot_wr1": DelayedPDActuatorCfg(
+            joint_names_expr=["arm0_wr1"],
+            effort_limit=30.3,
+            stiffness=60.0,
+            damping=1.5,
+            min_delay=0,  # physics time steps (min: 2.0*0=0.0ms)
+            max_delay=4,  # physics time steps (max: 2.0*4=8.0ms)
+            friction=0.05
+        ),
+        "spot_f1x": DelayedPDActuatorCfg(
+            joint_names_expr=["arm0_f1x"],
+            effort_limit=15.32,
+            stiffness=60.0,
+            damping=1.5,
+            min_delay=0,  # physics time steps (min: 2.0*0=0.0ms)
+            max_delay=4,  # physics time steps (max: 2.0*4=8.0ms)
+            friction=0.05
+        ),
+        "spot_sh0": DelayedPDActuatorCfg(
+            joint_names_expr=["arm0_sh0"],
+            effort_limit=90.3,
+            stiffness=60.0,
+            damping=1.5,
             min_delay=0,  # physics time steps (min: 2.0*0=0.0ms)
             max_delay=4,  # physics time steps (max: 2.0*4=8.0ms)
             friction=0.05
