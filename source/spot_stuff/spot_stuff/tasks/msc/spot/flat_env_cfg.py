@@ -233,6 +233,12 @@ class SpotRewardsCfg:
         weight=0.1,
         params={"ee_frame_cfg": SceneEntityCfg("ee_frame"), "std": 0.1}
     )
+
+    end_effector_orientation_tracking = RewardTermCfg(
+        func=spot_mdp.orientation_command_error,
+        weight=-0.0001,
+        params={"ee_frame_cfg": SceneEntityCfg("ee_frame")},
+    )
    
 
     # -- penalties
@@ -299,6 +305,10 @@ class CurriculumCfg:
 
     joint_vel = CurrTerm(
         func=mdp.modify_reward_weight, params={"term_name": "joint_vel", "weight": -0.001, "num_steps": 8500}
+    )
+
+    orientation_tracking = CurrTerm(
+        func=mdp.modify_reward_weight, params={"term_name": "end_effector_orientation_tracking", "weight": -0.1, "num_steps": 8500}
     )
 
 @configclass

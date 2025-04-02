@@ -28,7 +28,7 @@ class WorldPoseCommand(CommandTerm):
         self.metrics["position_error"] = torch.zeros(self.num_envs, device=self.device)
         self.metrics["orientation_error"] = torch.zeros(self.num_envs, device=self.device)
 
-        self.origins = env.scene.env_origins
+        self.origins = torch.cat((env.scene.env_origins, torch.zeros(self.num_envs, 4, device=self.device)), 1)
     def __str__(self) -> str:
         msg = "WorldPoseCommand:\n"
         msg += f"\tCommand dimension: {tuple(self.command.shape[1:])}\n"
@@ -37,13 +37,22 @@ class WorldPoseCommand(CommandTerm):
     
     @property
     def command(self) -> torch.Tensor:
-        return self.pose_command_w[:, :3] - (self.robot.data.body_link_state_w[:, self.body_idx, :3] - self.origins)
+        # Extract the first 3 elements for subtraction
+        result = self.pose_command_w[:, :3] - (
+            self.robot.data.body_link_state_w[:, self.body_idx, :3] - self.origins[:, :3]
+        )
+
+        # Concatenate the remaining elements of body_link_state_w[:, self.body_idx] - origins
+        remaining = self.robot.data.body_link_state_w[:, self.body_idx, 3:7] - self.origins[:, 3:]
+        # Combine the first 3 elements (result) with the remaining elements
+        return torch.cat((result, remaining), dim=-1)
+
     
     def _update_metrics(self):
         # transform command from base frame to simulation world frame
         # compute the error
         pos_error, rot_error = compute_pose_error(
-            self.pose_command_w[:, :3] + self.origins,
+            self.pose_command_w[:, :3] + self.origins[:, :3],
             self.pose_command_w[:, 3:],
             self.robot.data.body_link_state_w[:, self.body_idx, :3],
             self.robot.data.body_link_state_w[:, self.body_idx, 3:7],
@@ -81,4 +90,4 @@ class WorldPoseCommand(CommandTerm):
             return
         # update the markers
         # -- goal pose
-        self.goal_pose_visualizer.visualize(self.pose_command_w[:, :3] + self.origins[:], self.pose_command_w[:, 3:])
+        self.goal_pose_visualizer.visualize(self.pose_command_w[:, :3] + self.origins[:,:3], self.pose_command_w[:, 3:])
