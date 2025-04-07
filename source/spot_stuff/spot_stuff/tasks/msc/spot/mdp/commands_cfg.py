@@ -11,6 +11,7 @@ class WorldPoseCommandCfg(CommandTermCfg):
     class_type: type = WorldPoseCommand
     asset_name: str = MISSING # type: ignore
     body_name: str = MISSING # type: ignore
+    ee_name: str = MISSING # type: ignore
     @configclass
     class Ranges:
         """Uniform distribution ranges for the pose commands."""

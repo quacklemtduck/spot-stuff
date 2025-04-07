@@ -75,6 +75,7 @@ class SpotCommandsCfg:
     goal_command = spot_mdp.WorldPoseCommandCfg(
         asset_name="robot",
         body_name="body", # type: ignore
+        ee_name="ee_frame",
         resampling_time_range=(4.0, 4.0),
         debug_vis=True,
         ranges=spot_mdp.WorldPoseCommandCfg.Ranges(
@@ -295,7 +296,7 @@ class SpotSceneCfg(InteractiveSceneCfg):
 
     ee_frame = FrameTransformerCfg(
         prim_path="{ENV_REGEX_NS}/Robot/body",
-        debug_vis=False,
+        debug_vis=True,
         target_frames=[FrameTransformerCfg.FrameCfg(prim_path="{ENV_REGEX_NS}/Robot/arm0_link_fngr")]
     )
 
@@ -355,7 +356,7 @@ class MscEnvCfg(ManagerBasedRLEnvCfg):
         # update sensor update periods
         # we tick all the sensors based on the smallest update period (physics update period)
         self.scene.contact_forces.update_period = self.sim.dt
-
+        self.scene.ee_frame.visualizer_cfg.markers["frame"].scale = (0.1, 0.1, 0.1) # type: ignore
         # switch robot to Spot-d
 
 

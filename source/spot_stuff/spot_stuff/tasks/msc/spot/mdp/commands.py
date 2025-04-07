@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Sequence
 from isaaclab.assets import Articulation
 from isaaclab.utils.math import combine_frame_transforms, compute_pose_error, quat_from_euler_xyz, quat_unique
 from isaaclab.markers import VisualizationMarkers
+from isaaclab.sensors import FrameTransformer
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedEnv
@@ -20,6 +21,7 @@ class WorldPoseCommand(CommandTerm):
         super().__init__(cfg, env) # type: ignore
         self.robot: Articulation = env.scene[cfg.asset_name]
         self.body_idx = self.robot.find_bodies(cfg.body_name)[0][0]
+        self.ee_frame: FrameTransformer = env.scene[cfg.ee_name]
         # create buffers
         # -- commands: (x, y, z, qw, qx, qy, qz) in root frame
         self.pose_command_w = torch.zeros(self.num_envs, 7, device=self.device)
@@ -43,7 +45,7 @@ class WorldPoseCommand(CommandTerm):
         )
 
         # Concatenate the remaining elements of body_link_state_w[:, self.body_idx] - origins
-        remaining = self.robot.data.body_link_state_w[:, self.body_idx, 3:7] - self.origins[:, 3:]
+        remaining = self.pose_command_w[:, 3:]
         # Combine the first 3 elements (result) with the remaining elements
         return torch.cat((result, remaining), dim=-1)
 
@@ -54,8 +56,8 @@ class WorldPoseCommand(CommandTerm):
         pos_error, rot_error = compute_pose_error(
             self.pose_command_w[:, :3] + self.origins[:, :3],
             self.pose_command_w[:, 3:],
-            self.robot.data.body_link_state_w[:, self.body_idx, :3],
-            self.robot.data.body_link_state_w[:, self.body_idx, 3:7],
+            self.ee_frame.data.target_pos_w[:, 0],
+            self.ee_frame.data.target_quat_w[:, 0],
         )
         self.metrics["position_error"] = torch.norm(pos_error, dim=-1)
         self.metrics["orientation_error"] = torch.norm(rot_error, dim=-1)
