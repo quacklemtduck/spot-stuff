@@ -37,7 +37,7 @@ from .spot_arm import SPOT_ARM_CFG
 class SpotActionsCfg:
     """Action specifications for the MDP."""
 
-    joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=["arm0.*"], scale=0.5, use_default_offset=True)
+    joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=[".*"], scale=0.5, use_default_offset=True)
     #joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=["arm0_el.*","arm0_sh.*"], scale=0.5, use_default_offset=True)
 
     # joint_pos = mdp.JointPositionActionCfg(
@@ -83,7 +83,7 @@ class SpotCommandsCfg:
             pos_y=(-0.4, 0.4),
             pos_z=(0.5, 0.8),
             roll=(0.0, 0.0),
-            pitch=(math.pi / 2, math.pi / 2),  # depends on end-effector axis
+            pitch=(math.pi / 4, math.pi / 2),  # depends on end-effector axis
             yaw=(0, 0),
         )
     )
@@ -98,17 +98,17 @@ class SpotObservationsCfg:
         """Observations for policy group."""
 
         # `` observation terms (order preserved)
-        # base_lin_vel = ObsTerm(
-        #     func=mdp.base_lin_vel, params={"asset_cfg": SceneEntityCfg("robot")}, noise=Unoise(n_min=-0.1, n_max=0.1)
-        # )
-        # base_ang_vel = ObsTerm(
-        #     func=mdp.base_ang_vel, params={"asset_cfg": SceneEntityCfg("robot")}, noise=Unoise(n_min=-0.1, n_max=0.1)
-        # )
-        # projected_gravity = ObsTerm(
-        #     func=mdp.projected_gravity,
-        #     params={"asset_cfg": SceneEntityCfg("robot")},
-        #     noise=Unoise(n_min=-0.05, n_max=0.05),
-        # )
+        base_lin_vel = ObsTerm(
+            func=mdp.base_lin_vel, params={"asset_cfg": SceneEntityCfg("robot")}, noise=Unoise(n_min=-0.1, n_max=0.1)
+        )
+        base_ang_vel = ObsTerm(
+            func=mdp.base_ang_vel, params={"asset_cfg": SceneEntityCfg("robot")}, noise=Unoise(n_min=-0.1, n_max=0.1)
+        )
+        projected_gravity = ObsTerm(
+            func=mdp.projected_gravity,
+            params={"asset_cfg": SceneEntityCfg("robot")},
+            noise=Unoise(n_min=-0.05, n_max=0.05),
+        )
         #velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"})
         # velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"})
         joint_pos = ObsTerm(
@@ -214,24 +214,6 @@ class SpotRewardsCfg:
         params={"ee_frame_cfg": SceneEntityCfg("ee_frame")}
     )
 
-    # catchy_points_move = RewardTermCfg(
-    #     func=spot_mdp.catch_box_move,
-    #     weight=-0.01,
-    #     params={"ee_frame_cfg": SceneEntityCfg("ee_frame"), "asset_cfg": SceneEntityCfg("robot", joint_names=["arm0_sh.*", "arm0_el0", "arm0_wr0"])}
-    # )
-
-    # catchy_points_towards = RewardTermCfg(
-    #     func=spot_mdp.catch_box_move_towards,
-    #     weight=0.5,
-    #     params={"asset_cfg": SceneEntityCfg("robot", body_names="arm0_link_fngr")}
-    # )
-
-    # catchy_points = RewardTermCfg(
-    #     func=spot_mdp.catch_box_old,
-    #     weight=-0.2,
-    #     params={"ee_frame_cfg": SceneEntityCfg("ee_frame")}
-    # )
-
     catchy_points_tanh = RewardTermCfg(
         func=spot_mdp.catch_box_tanh,
         weight=0.1,
@@ -255,6 +237,22 @@ class SpotRewardsCfg:
         params={"asset_cfg": SceneEntityCfg("robot")},
     )
 
+    foot_slip = RewardTermCfg(
+        func=spot_mdp.foot_slip_penalty,
+        weight=-0.5,
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names=".*_foot"),
+            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_foot"),
+            "threshold": 1.0,
+        },
+    )
+
+    base_motion = RewardTermCfg(
+        func=spot_mdp.base_motion_penalty, weight=-2.0, params={"asset_cfg": SceneEntityCfg("robot")}
+    )
+    base_orientation = RewardTermCfg(
+        func=spot_mdp.base_orientation_penalty, weight=-3.0, params={"asset_cfg": SceneEntityCfg("robot")}
+    )
     # joint_torques = RewardTermCfg(
     #     func=spot_mdp.joint_torques_penalty,
     #     weight=-5.0e-3,
@@ -267,10 +265,10 @@ class SpotTerminationsCfg:
     """Termination terms for the MDP."""
 
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
-    # body_contact = DoneTerm(
-    #     func=mdp.illegal_contact,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=["body", ".*leg"]), "threshold": 1.0},
-    # )
+    body_contact = DoneTerm(
+        func=mdp.illegal_contact,
+        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=["body", ".*leg"]), "threshold": 1.0},
+    )
 
     # bad_orientation = DoneTerm(
     #     func=mdp.bad_orientation,
