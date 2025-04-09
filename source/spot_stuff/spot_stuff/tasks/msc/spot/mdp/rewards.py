@@ -254,7 +254,7 @@ def joint_acceleration_penalty(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg
     """Penalize joint accelerations on the articulation."""
     # extract the used quantities (to enable type-hinting)
     asset: Articulation = env.scene[asset_cfg.name]
-    return torch.linalg.norm((asset.data.joint_acc), dim=1)
+    return torch.linalg.norm((asset.data.joint_acc[:, asset_cfg.joint_ids]), dim=1)
 
 
 def joint_position_penalty(

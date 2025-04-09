@@ -210,26 +210,26 @@ class SpotRewardsCfg:
 
     base_angular_velocity = RewardTermCfg(
         func=spot_mdp.base_angular_velocity_reward,
-        weight=5.0,
+        weight=2.0,
         params={"std": 2.0, "asset_cfg": SceneEntityCfg("robot")},
     )
     base_linear_velocity = RewardTermCfg(
         func=spot_mdp.base_linear_velocity_reward,
-        weight=5.0,
+        weight=2.0,
         params={"std": 1.0, "ramp_rate": 0.5, "ramp_at_vel": 1.0, "asset_cfg": SceneEntityCfg("robot")},
     )
 
     #Arm reward
     catchy_points = RewardTermCfg(
         func=spot_mdp.catch_box,
-        weight=-0.2,
+        weight=-2.0,
         params={"ee_frame_cfg": SceneEntityCfg("ee_frame")}
     )
 
     #Arm reward
     catchy_points_tanh = RewardTermCfg(
         func=spot_mdp.catch_box_tanh,
-        weight=0.1,
+        weight=1.0,
         params={"ee_frame_cfg": SceneEntityCfg("ee_frame"), "std": 0.1}
     )
 
@@ -297,6 +297,10 @@ class SpotRewardsCfg:
     #     weight=-5.0e-3,
     #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=".*")},
     # )
+    # (1) Constant running reward
+    alive = RewardTermCfg(func=mdp.is_alive, weight=1.0)
+    # (2) Failure penalty
+    terminating = RewardTermCfg(func=mdp.is_terminated, weight=-2.0)
 
 
 @configclass
