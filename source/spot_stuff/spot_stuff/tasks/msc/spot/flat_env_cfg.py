@@ -208,18 +208,32 @@ class SpotEventCfg:
 @configclass
 class SpotRewardsCfg:
 
+    base_angular_velocity = RewardTermCfg(
+        func=spot_mdp.base_angular_velocity_reward,
+        weight=5.0,
+        params={"std": 2.0, "asset_cfg": SceneEntityCfg("robot")},
+    )
+    base_linear_velocity = RewardTermCfg(
+        func=spot_mdp.base_linear_velocity_reward,
+        weight=5.0,
+        params={"std": 1.0, "ramp_rate": 0.5, "ramp_at_vel": 1.0, "asset_cfg": SceneEntityCfg("robot")},
+    )
+
+    #Arm reward
     catchy_points = RewardTermCfg(
         func=spot_mdp.catch_box,
         weight=-0.2,
         params={"ee_frame_cfg": SceneEntityCfg("ee_frame")}
     )
 
+    #Arm reward
     catchy_points_tanh = RewardTermCfg(
         func=spot_mdp.catch_box_tanh,
         weight=0.1,
         params={"ee_frame_cfg": SceneEntityCfg("ee_frame"), "std": 0.1}
     )
 
+    #Arm reward
     end_effector_orientation_tracking = RewardTermCfg(
         func=spot_mdp.orientation_command_error,
         weight=-0.0001,
@@ -231,10 +245,10 @@ class SpotRewardsCfg:
     #action_smoothness = RewardTermCfg(func=spot_mdp.action_smoothness_penalty, weight=-1.0)
 
     action_rate = RewardTermCfg(func=mdp.action_rate_l2, weight=-0.0001)
-    joint_vel = RewardTermCfg(
+    joint_arm_vel = RewardTermCfg(
         func=mdp.joint_vel_l2,
         weight=-0.0001,
-        params={"asset_cfg": SceneEntityCfg("robot")},
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names="arm.*")},
     )
 
     foot_slip = RewardTermCfg(
@@ -252,6 +266,31 @@ class SpotRewardsCfg:
     )
     base_orientation = RewardTermCfg(
         func=spot_mdp.base_orientation_penalty, weight=-3.0, params={"asset_cfg": SceneEntityCfg("robot")}
+    )
+    joint_acc = RewardTermCfg(
+        func=spot_mdp.joint_acceleration_penalty,
+        weight=-1.0e-4,
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=".*_h[xy]")},
+    )
+
+    joint_legs_pos = RewardTermCfg(
+        func=spot_mdp.joint_position_penalty,
+        weight=-0.7,
+        params={
+            "asset_cfg": SceneEntityCfg("robot", joint_names=[".*_h[xy]", ".*_kn"]),
+            "stand_still_scale": 5.0,
+            "velocity_threshold": 0.5,
+        },
+    )
+    joint_torques = RewardTermCfg(
+        func=spot_mdp.joint_torques_penalty,
+        weight=-5.0e-4,
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_h[xy]", ".*_kn"])},
+    )
+    joint_vel = RewardTermCfg(
+        func=spot_mdp.joint_velocity_penalty,
+        weight=-1.0e-2,
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=".*_h[xy]")},
     )
     # joint_torques = RewardTermCfg(
     #     func=spot_mdp.joint_torques_penalty,
@@ -306,7 +345,7 @@ class CurriculumCfg:
     )
 
     joint_vel = CurrTerm(
-        func=mdp.modify_reward_weight, params={"term_name": "joint_vel", "weight": -0.001, "num_steps": 8500}
+        func=mdp.modify_reward_weight, params={"term_name": "joint_arm_vel", "weight": -0.001, "num_steps": 8500}
     )
 
     orientation_tracking = CurrTerm(
