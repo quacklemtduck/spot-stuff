@@ -265,7 +265,7 @@ def joint_position_penalty(
     asset: Articulation = env.scene[asset_cfg.name]
     cmd = torch.linalg.norm(env.command_manager.get_command("base_velocity"), dim=1)
     body_vel = torch.linalg.norm(asset.data.root_lin_vel_b[:, :2], dim=1)
-    reward = torch.linalg.norm((asset.data.joint_pos - asset.data.default_joint_pos), dim=1)
+    reward = torch.linalg.norm((asset.data.joint_pos[:, asset_cfg.joint_ids] - asset.data.default_joint_pos[:, asset_cfg.joint_ids]), dim=1)
     return torch.where(torch.logical_or(cmd > 0.0, body_vel > velocity_threshold), reward, stand_still_scale * reward)
 
 
@@ -273,14 +273,14 @@ def joint_torques_penalty(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg) -> 
     """Penalize joint torques on the articulation."""
     # extract the used quantities (to enable type-hinting)
     asset: Articulation = env.scene[asset_cfg.name]
-    return torch.linalg.norm((asset.data.applied_torque), dim=1)
+    return torch.linalg.norm((asset.data.applied_torque[:, asset_cfg.joint_ids]), dim=1)
 
 
 def joint_velocity_penalty(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
     """Penalize joint velocities on the articulation."""
     # extract the used quantities (to enable type-hinting)
     asset: Articulation = env.scene[asset_cfg.name]
-    return torch.linalg.norm((asset.data.joint_vel), dim=1)
+    return torch.linalg.norm((asset.data.joint_vel[:, asset_cfg.joint_ids]), dim=1)
 
 def arm_velocity_penalty(env: ManagerBasedRLEnv, robot_cfg: SceneEntityCfg) -> torch.Tensor:
     robot: Articulation = env.scene[robot_cfg.name]
