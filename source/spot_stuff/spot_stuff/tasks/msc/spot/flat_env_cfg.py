@@ -76,7 +76,7 @@ class SpotCommandsCfg:
         asset_name="robot",
         body_name="body", # type: ignore
         ee_name="ee_frame",
-        resampling_time_range=(4.0, 4.0),
+        resampling_time_range=(2.0, 4.0),
         debug_vis=True,
         ranges=spot_mdp.WorldPoseCommandCfg.Ranges(
             pos_x=(0.5, 0.8),
