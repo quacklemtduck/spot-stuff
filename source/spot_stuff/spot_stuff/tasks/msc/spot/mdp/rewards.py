@@ -76,7 +76,7 @@ def base_linear_velocity_reward(
     asset: RigidObject = env.scene[asset_cfg.name]
     # compute the error
     target = env.command_manager.get_command("base_velocity")[:, :2]
-    lin_vel_error = torch.linalg.norm((target - asset.data.root_lin_vel_b[:, :2]), dim=1)
+    lin_vel_error = torch.linalg.norm((target - asset.data.root_lin_vel_b[:, :2]), dim=1) #TODO: look into changing this
     # fixed 1.0 multiple for tracking below the ramp_at_vel value, then scale by the rate above
     vel_cmd_magnitude = torch.linalg.norm(target, dim=1)
     velocity_scaling_multiple = torch.clamp(1.0 + ramp_rate * (vel_cmd_magnitude - ramp_at_vel), min=1.0)
