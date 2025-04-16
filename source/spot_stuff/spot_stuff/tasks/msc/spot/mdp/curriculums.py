@@ -1,4 +1,5 @@
 from __future__ import annotations
+import math
 
 import torch
 from collections.abc import Sequence
@@ -10,26 +11,28 @@ from isaaclab.managers import SceneEntityCfg
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
 
+target = 800000
 
 def catchy_increase(
-    env: ManagerBasedRLEnv, env_ids: Sequence[int], asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+    env: ManagerBasedRLEnv, env_ids: Sequence[int], num_steps: int
 ) -> torch.Tensor | None:
+    global target
     bc = env.termination_manager.get_term("body_contact")
     val = torch.sum(bc.float()) / env.num_envs
-    if val < 0.02:
+    if val < 0.02 and env.common_step_counter > 100 and target == 800000:
+        target = env.common_step_counter + num_steps
+
+    if env.common_step_counter > target:
         catchy = env.reward_manager.get_term_cfg("catchy_points")
-        catchy.weight = -0.4
-        vel1 = env.reward_manager.get_term_cfg("base_angular_velocity")
-        vel1.weight = 2.0
-        vel2 = env.reward_manager.get_term_cfg("base_linear_velocity")
-        vel2.weight = 2.0
-    else:
-        catchy = env.reward_manager.get_term_cfg("catchy_points")
-        catchy.weight = -0.2
-        vel1 = env.reward_manager.get_term_cfg("base_angular_velocity")
-        vel1.weight = 5.0
-        vel2 = env.reward_manager.get_term_cfg("base_linear_velocity")
-        vel2.weight = 5.0
+        catchy.weight = -2.0
+        env.reward_manager.set_term_cfg("catchy_points", catchy)
+        catchy_tanh = env.reward_manager.get_term_cfg("catchy_points_tanh")
+        catchy_tanh.weight = 1.0
+        env.reward_manager.set_term_cfg("catchy_points_tanh", catchy_tanh)
+        oritentation = env.reward_manager.get_term_cfg("end_effector_orientation_tracking")
+        oritentation.weight = -0.5
+        env.reward_manager.set_term_cfg("end_effector_orientation_tracking", oritentation)
+        
 
     return val
 

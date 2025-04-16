@@ -222,21 +222,21 @@ class SpotRewardsCfg:
     #Arm reward
     catchy_points = RewardTermCfg(
         func=spot_mdp.catch_box,
-        weight=-2.0,
+        weight=-0.00001,
         params={"ee_frame_cfg": SceneEntityCfg("ee_frame")}
     )
 
     #Arm reward
     catchy_points_tanh = RewardTermCfg(
         func=spot_mdp.catch_box_tanh,
-        weight=1.0,
+        weight=0.00001,
         params={"ee_frame_cfg": SceneEntityCfg("ee_frame"), "std": 0.1}
     )
 
     #Arm reward
     end_effector_orientation_tracking = RewardTermCfg(
         func=spot_mdp.orientation_command_error,
-        weight=-0.0001,
+        weight=-0.00001,
         params={"ee_frame_cfg": SceneEntityCfg("ee_frame")},
     )
    
@@ -308,15 +308,15 @@ class SpotTerminationsCfg:
     """Termination terms for the MDP."""
 
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
-    # body_contact = DoneTerm(
-    #     func=mdp.illegal_contact,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=["body", ".*leg"]), "threshold": 1.0},
-    # )
-
-    bad_orientation = DoneTerm(
-        func=mdp.bad_orientation,
-        params={"limit_angle": 0.25}
+    body_contact = DoneTerm(
+        func=mdp.illegal_contact,
+        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=["body", ".*leg"]), "threshold": 1.0},
     )
+
+    # bad_orientation = DoneTerm(
+    #     func=mdp.bad_orientation,
+    #     params={"limit_angle": 0.25}
+    # )
 
 
 @configclass
@@ -345,15 +345,15 @@ class SpotSceneCfg(InteractiveSceneCfg):
 class CurriculumCfg:
     #catchy_curriculum = CurrTerm(func=spot_mdp.catchy_increase) # type: ignore
     action_rate = CurrTerm(
-        func=mdp.modify_reward_weight, params={"term_name": "action_rate", "weight": -0.005, "num_steps": 8500}
+        func=mdp.modify_reward_weight, params={"term_name": "action_rate", "weight": -0.005, "num_steps": 18500}
     )
 
     joint_vel = CurrTerm(
-        func=mdp.modify_reward_weight, params={"term_name": "joint_arm_vel", "weight": -0.001, "num_steps": 8500}
+        func=mdp.modify_reward_weight, params={"term_name": "joint_arm_vel", "weight": -0.001, "num_steps": 18500}
     )
 
-    orientation_tracking = CurrTerm(
-        func=mdp.modify_reward_weight, params={"term_name": "end_effector_orientation_tracking", "weight": -0.1, "num_steps": 8500}
+    catchy_increase = CurrTerm(
+        func=spot_mdp.catchy_increase, params={"num_steps": 8500} # type: ignore
     )
 
 @configclass
