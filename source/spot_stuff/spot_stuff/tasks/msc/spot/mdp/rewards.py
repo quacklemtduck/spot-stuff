@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
     from isaaclab.managers import RewardTermCfg
 
-from isaaclab.utils.math import combine_frame_transforms, quat_error_magnitude, quat_mul
+from isaaclab.utils.math import combine_frame_transforms, quat_error_magnitude, quat_mul, euler_xyz_from_quat
 ##
 # Task Rewards
 ##
@@ -537,3 +537,24 @@ def orientation_command_error(env: ManagerBasedRLEnv, ee_frame_cfg: SceneEntityC
     curr_quat = ee_frame.data.target_quat_w.squeeze(1)
 
     return quat_error_magnitude(des_quat, curr_quat)
+
+
+def body_orientation_penalty_exp(env: ManagerBasedRLEnv,
+                                 asset_cfg: SceneEntityCfg,
+                                 alpha: float = 5.0
+) -> torch.Tensor:
+    robot: Articulation = env.scene[asset_cfg.name]
+    rotation = robot.data.body_quat_w[:, asset_cfg.body_ids].squeeze(1)
+    yaw = euler_xyz_from_quat(rotation)[2]
+    
+    # error = -yaw  # we want 0 − yaw
+    # e = torch.abs(error)
+
+    #convert from [0, 2π) to [−π, π] so small negative angles aren’t huge positives
+    yaw = wrap_to_pi(yaw)
+    #print("YAW:", yaw)
+    # your “error” from zero heading
+    e = torch.abs(yaw)
+
+    # exponential penalty that is 0 at e=0, and grows for large e
+    return torch.exp(alpha * e) - 1.0

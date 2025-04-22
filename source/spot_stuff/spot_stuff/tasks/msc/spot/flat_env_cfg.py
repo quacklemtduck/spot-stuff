@@ -292,6 +292,12 @@ class SpotRewardsCfg:
         weight=-1.0e-2,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=".*_h[xy]")},
     )
+
+    body_orentation = RewardTermCfg(
+        func=spot_mdp.body_orientation_penalty_exp,
+        weight=-1,
+        params={"asset_cfg": SceneEntityCfg("robot", body_names="body")},
+    )
     # joint_torques = RewardTermCfg(
     #     func=spot_mdp.joint_torques_penalty,
     #     weight=-5.0e-3,
