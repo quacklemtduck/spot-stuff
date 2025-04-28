@@ -79,7 +79,7 @@ class SpotCommandsCfg:
         resampling_time_range=(2.0, 4.0),
         debug_vis=True,
         ranges=spot_mdp.WorldPoseCommandCfg.Ranges(
-            pos_x=(0.5, 0.8),
+            pos_x=(0.5, 0.7),
             pos_y=(-0.4, 0.4),
             pos_z=(0.5, 0.8),
             roll=(0.0, 0.0),
@@ -349,7 +349,7 @@ class CurriculumCfg:
     )
 
     joint_vel = CurrTerm(
-        func=mdp.modify_reward_weight, params={"term_name": "joint_arm_vel", "weight": -0.001, "num_steps": 18500}
+        func=mdp.modify_reward_weight, params={"term_name": "joint_arm_vel", "weight": -0.01, "num_steps": 18500}
     )
 
     catchy_increase = CurrTerm(
