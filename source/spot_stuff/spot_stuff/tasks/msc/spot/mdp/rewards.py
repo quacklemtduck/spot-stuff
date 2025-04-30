@@ -315,26 +315,23 @@ def good_boy_points(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg) -> torch.
     asset: RigidObject = env.scene[asset_cfg.name]
 
     # Get current position of the robot
-    current_positions = asset.data.root_pos_w[:, :2]
-    
+    current_positions = asset.data.root_pos_w[:, :2] - env.scene.env_origins[:, :2]
+    print(current_positions[0])
 
     # Get the initial position of the robot (assuming it's stored in the environment)
     initial_positions = asset.data.default_root_state[:, :2]
+    print(initial_positions[0])
 
     # Calculate the distance from the initial position
     distances = torch.linalg.norm(current_positions - initial_positions, dim=1)
 
-    # Define parameters for the reward function
-    max_distance = 1.0  # Maximum distance to consider for reward
-    reward_scale = 1.0  # Scaling factor for the reward
-
     # Calculate the reward using an exponential decay based on distance
-    reward = torch.exp(-distances**2 / (2 * (max_distance / 3) ** 2)) * reward_scale
+    reward = torch.exp(distances) - 1
 
     # Optional: Add a small penalty for excessive joint movements (example)
-    joint_velocities = asset.data.joint_vel  # type: ignore
-    joint_movement_penalty = torch.sum(torch.abs(joint_velocities), dim=1) * 0.01
-    reward -= joint_movement_penalty
+    # joint_velocities = asset.data.joint_vel  # type: ignore
+    # joint_movement_penalty = torch.sum(torch.abs(joint_velocities), dim=1) * 0.01
+    # reward -= joint_movement_penalty
 
     return reward
 

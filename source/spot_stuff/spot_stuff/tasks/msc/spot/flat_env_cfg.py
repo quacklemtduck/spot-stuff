@@ -239,6 +239,12 @@ class SpotRewardsCfg:
         weight=-0.00001,
         params={"ee_frame_cfg": SceneEntityCfg("ee_frame")},
     )
+
+    good_boy_points = RewardTermCfg(
+        func=spot_mdp.good_boy_points,
+        weight= -0.5,
+        params={"asset_cfg": SceneEntityCfg("robot", body_names="body")}
+    )
    
 
     # -- penalties
