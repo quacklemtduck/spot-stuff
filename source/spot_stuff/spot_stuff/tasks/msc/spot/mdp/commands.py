@@ -63,6 +63,34 @@ class WorldPoseCommand(CommandTerm):
         self.metrics["orientation_error"] = torch.norm(rot_error, dim=-1)
 
     def _resample_command(self, env_ids: Sequence[int]):
+        if self.cfg.positions is not None and len(self.cfg.positions) > 0:
+            print("Resample", self.command_counter, len(self.cfg.positions))
+            # Convert positions list to a tensor for easy indexing
+            # (Do this conversion once if possible, not in _resample_command)
+            # For demonstration, converting here:
+            positions_tensor = torch.tensor(self.cfg.positions, dtype=torch.float32, device=self.device)
+            num_available_positions = positions_tensor.shape[0]
+
+            # Get the current command counters for the selected environments
+            current_counters = self.command_counter[env_ids] - 1
+
+            # Create a mask for environments where the counter is a valid index
+            valid_mask = current_counters < num_available_positions
+
+            # Get the environment IDs from env_ids where the counter is valid
+            valid_env_ids = torch.tensor(env_ids, device=self.command_counter.device)[valid_mask]
+
+            # Get the counters that are valid indices
+            valid_counters = current_counters[valid_mask]
+
+            # If there are any valid commands to set
+            if valid_env_ids.numel() > 0:
+                # Get the new commands by indexing the positions tensor
+                new_commands = positions_tensor[valid_counters]
+
+                # Assign the new commands to the selected environments
+                self.pose_command_w[valid_env_ids] = new_commands
+            return
         # sample new pose targets
         # -- position
         r = torch.empty(len(env_ids), device=self.device)

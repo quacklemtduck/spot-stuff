@@ -1,3 +1,4 @@
+import torch
 from isaaclab.managers import CommandTermCfg, CommandTerm
 from isaaclab.utils import configclass
 from dataclasses import MISSING
@@ -35,6 +36,8 @@ class WorldPoseCommandCfg(CommandTermCfg):
         """Range for the yaw angle (in rad)."""
     
     ranges: Ranges = MISSING # type: ignore
+    
+    positions: None | list[tuple[float, float, float, float, float, float, float]] = MISSING # type: ignore
 
     goal_pose_visualizer_cfg: VisualizationMarkersCfg = FRAME_MARKER_CFG.replace(prim_path="/Visuals/Command/goal_pose") # type: ignore
     """The configuration for the goal pose visualization marker. Defaults to FRAME_MARKER_CFG."""

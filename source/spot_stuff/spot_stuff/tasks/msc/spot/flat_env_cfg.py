@@ -3,6 +3,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
+import torch
 from isaaclab.assets.asset_base_cfg import AssetBaseCfg
 from isaaclab.envs.manager_based_rl_env_cfg import ManagerBasedRLEnvCfg
 from isaaclab.scene.interactive_scene_cfg import InteractiveSceneCfg
@@ -77,6 +78,17 @@ class SpotCommandsCfg:
         body_name="body", # type: ignore
         ee_name="ee_frame",
         resampling_time_range=(2.0, 4.0),
+        positions=[
+            (0.5, 0.0, 0.5, 0.819, 0.0, 0.574, 0.0),
+            (0.8, 0.0, 0.5, 0.819, 0.0, 0.574, 0.0),
+            (0.5, 0.0, 0.1, 0.819, 0.0, 0.574, 0.0),
+            (0.5, 0.0, 0.8, 0.819, 0.0, 0.574, 0.0),
+            (0.5, 0.4, 0.5, 0.819, 0.0, 0.574, 0.0),
+            (0.5, 0.4, 0.8, 0.819, 0.0, 0.574, 0.0),
+            (0.5, -0.4, 0.5, 0.819, 0.0, 0.574, 0.0),
+            (0.5, -0.4, 0.8, 0.819, 0.0, 0.574, 0.0),
+            (0.8, -0.4, 0.8, 0.819, 0.0, 0.574, 0.0),
+        ],
         debug_vis=True,
         ranges=spot_mdp.WorldPoseCommandCfg.Ranges(
             pos_x=(0.5, 0.8),
@@ -330,6 +342,19 @@ class SpotTerminationsCfg:
     #     params={"limit_angle": 0.25}
     # )
 
+@configclass
+class BenchmarkTerminationsCfg:
+    """Termination terms for the MDP."""
+
+    body_contact = DoneTerm(
+        func=mdp.illegal_contact,
+        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=["body", ".*leg"]), "threshold": 1.0},
+    )
+
+    # bad_orientation = DoneTerm(
+    #     func=mdp.bad_orientation,
+    #     params={"limit_angle": 0.25}
+    # )
 
 @configclass
 class SpotSceneCfg(InteractiveSceneCfg):
@@ -378,7 +403,7 @@ class MscEnvCfg(ManagerBasedRLEnvCfg):
 
     # MDP setting
     rewards: SpotRewardsCfg = SpotRewardsCfg()
-    terminations: SpotTerminationsCfg = SpotTerminationsCfg()
+    terminations: SpotTerminationsCfg | BenchmarkTerminationsCfg = SpotTerminationsCfg()
     events: SpotEventCfg = SpotEventCfg()
     curriculum: CurriculumCfg = CurriculumCfg()
 
@@ -414,12 +439,33 @@ class MscEnvCfg(ManagerBasedRLEnvCfg):
 
 
 class SpotFlatEnvCfg_PLAY(MscEnvCfg):
+
+
     def __post_init__(self) -> None:
         # post init of parent
         super().__post_init__()
 
         # make a smaller scene for play
-        self.scene.num_envs = 50
+        self.scene.num_envs = 1
+        self.scene.env_spacing = 2.5
+        # spawn the robot randomly in the grid (instead of their terrain levels)
+
+        # disable randomization for play
+        self.observations.policy.enable_corruption = False
+        # remove random pushing event
+        # self.events.base_external_force_torque = None
+        # self.events.push_robot = None
+
+class SpotFlatEnv_Benchmark(MscEnvCfg):
+
+    terminations = BenchmarkTerminationsCfg()
+
+    def __post_init__(self) -> None:
+        # post init of parent
+        super().__post_init__()
+
+        # make a smaller scene for play
+        self.scene.num_envs = 1
         self.scene.env_spacing = 2.5
         # spawn the robot randomly in the grid (instead of their terrain levels)
 
