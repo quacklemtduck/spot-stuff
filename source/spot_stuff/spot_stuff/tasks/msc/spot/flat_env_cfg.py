@@ -482,7 +482,7 @@ class SpotFlatEnvCfg_PLAY(MscEnvCfg):
         super().__post_init__()
 
         # make a smaller scene for play
-        self.scene.num_envs = 1
+        self.scene.num_envs = 10
         self.scene.env_spacing = 2.5
         # spawn the robot randomly in the grid (instead of their terrain levels)
 

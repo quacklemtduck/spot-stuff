@@ -119,86 +119,139 @@ class WorldPoseCommand(CommandTerm):
         # sample new pose targets
         # -- position
         
-        cube_center = self.robot.data.body_link_state_w[:, self.body_idx, :3] - self.origins[:, :3] # Center position of the cube deadzone [x, y, z]
+        cube_centers = self.robot.data.body_link_state_w[:, self.body_idx, :3] - self.origins[:, :3] # Center position of the cube deadzone [x, y, z]
         cube_width = 0.9  # Width of the cube (x-dimension)
         cube_height = 0.5  # Height of the cube (y-dimension)
         cube_depth = 0.3  # Depth of the cube (z-dimension)
         
         # Calculate cube bounds
-        x_min = cube_center[:, 0] - cube_width/2
-        x_max = cube_center[:, 0] + cube_width/2
-        y_min = cube_center[:, 1] - cube_height/2
-        y_max = cube_center[:, 1] + cube_height/2
-        z_min = cube_center[:, 2] - 5
-        z_max = cube_center[:, 2] + cube_depth/2
-        r = torch.empty(len(env_ids), device=self.device)
+        # x_min = cube_center[:, 0] - cube_width/2
+        # x_max = cube_center[:, 0] + cube_width/2
+        # y_min = cube_center[:, 1] - cube_height/2
+        # y_max = cube_center[:, 1] + cube_height/2
+        # z_min = cube_center[:, 2] - 5
+        # z_max = cube_center[:, 2] + cube_depth/2
+        half_width = torch.tensor([cube_width/2, cube_height/2, cube_depth/2], device=self.device)
+        cube_min = cube_centers - half_width
+        cube_max = cube_centers + half_width
+        cube_min[:, 2] -= 5
         # Sample positions
         valid_positions = torch.zeros(len(env_ids), dtype=torch.bool, device=self.device)
         max_attempts = 10  # Avoid infinite loops
-        
+        env_ids_tensor = torch.tensor(env_ids, device=self.device)
         for attempt in range(max_attempts):
-            # Sample positions for those that aren't valid yet
-            invalid_idx = torch.where(~valid_positions)[0]
-            if len(invalid_idx) == 0:
+            # Find which environments still need valid positions
+            invalid_mask = ~valid_positions
+            n_invalid = invalid_mask.sum().item()
+            
+            if n_invalid == 0:
                 break
                 
-            # Sample new positions for invalid indices
-            invalid_env_ids = [env_ids[i] for i in invalid_idx] # type: ignore
-            self.pose_command_w[invalid_env_ids, 0] = r[invalid_idx].uniform_(*self.cfg.ranges.pos_x)
-            self.pose_command_w[invalid_env_ids, 1] = r[invalid_idx].uniform_(*self.cfg.ranges.pos_y)
-            self.pose_command_w[invalid_env_ids, 2] = r[invalid_idx].uniform_(*self.cfg.ranges.pos_z)
+            # Get the indices of invalid environments
+            invalid_indices = torch.where(invalid_mask)[0]
+            # print("Resample", attempt)
+            # print(env_ids)
+            # print(invalid_indices)
+            #invalid_env_ids = torch.tensor([env_ids[i] for i in invalid_indices], device=self.device) # type: ignore
+            invalid_env_ids = env_ids_tensor[invalid_mask]
+            # Sample new positions for invalid environments
+            self.pose_command_w[invalid_env_ids, 0] = torch.empty(n_invalid, device=self.device).uniform_(*self.cfg.ranges.pos_x) # type: ignore
+            self.pose_command_w[invalid_env_ids, 1] = torch.empty(n_invalid, device=self.device).uniform_(*self.cfg.ranges.pos_y) # type: ignore
+            self.pose_command_w[invalid_env_ids, 2] = torch.empty(n_invalid, device=self.device).uniform_(*self.cfg.ranges.pos_z) # type: ignore
+            # Check if positions are outside their respective cubes
+            # Check if positions are outside their respective cubes
+            # Note: We need to index the cube bounds by the original env_ids
+            sampled_positions = self.pose_command_w[env_ids_tensor, :3]
+            cube_min_for_envs = cube_min[env_ids_tensor]
+            cube_max_for_envs = cube_max[env_ids_tensor]
             
+            outside_min = (sampled_positions < cube_min_for_envs)
+            outside_max = (sampled_positions > cube_max_for_envs)
+            outside_any_dim = outside_min | outside_max
+            valid_positions = outside_any_dim.any(dim=1)
             # Check if positions are outside the cube
-            for i, env_id in enumerate(env_ids):
-                pos = self.pose_command_w[env_id, :3]
-                # A point is outside the cube if any coordinate is outside the cube's bounds
-                outside_x = (pos[0] < x_min) or (pos[0] > x_max)
-                outside_y = (pos[1] < y_min) or (pos[1] > y_max)
-                outside_z = (pos[2] < z_min) or (pos[2] > z_max)
-                valid_positions[i] = outside_x or outside_y or outside_z
+            # for i, env_id in enumerate(env_ids):
+            #     pos = self.pose_command_w[env_id, :3]
+            #     # A point is outside the cube if any coordinate is outside the cube's bounds
+            #     outside_x = (pos[0] < x_min) or (pos[0] > x_max)
+            #     outside_y = (pos[1] < y_min) or (pos[1] > y_max)
+            #     outside_z = (pos[2] < z_min) or (pos[2] > z_max)
+            #     valid_positions[i] = outside_x or outside_y or outside_z
     
     # If we still have invalid positions after max attempts, place them outside the cube
-        for i, env_id in enumerate(env_ids):
-            if not valid_positions[i]:
-                # Determine which face of the cube to place the point on
-                # Choose a random face (0-5) corresponding to the 6 faces of the cube
-                face = torch.randint(0, 6, (1,), device=self.device).item()
-                
-                # Create a position on that face
-                pos = torch.zeros(3, device=self.device)
-                
-                if face == 0:  # +x face
-                    pos[0] = x_max
-                    pos[1] = torch.rand(1, device=self.device).item() * cube_height - cube_height/2 + cube_center[1]
-                    pos[2] = torch.rand(1, device=self.device).item() * cube_depth - cube_depth/2 + cube_center[2]
-                elif face == 1:  # -x face
-                    pos[0] = x_min
-                    pos[1] = torch.rand(1, device=self.device).item() * cube_height - cube_height/2 + cube_center[1]
-                    pos[2] = torch.rand(1, device=self.device).item() * cube_depth - cube_depth/2 + cube_center[2]
-                elif face == 2:  # +y face
-                    pos[0] = torch.rand(1, device=self.device).item() * cube_width - cube_width/2 + cube_center[0]
-                    pos[1] = y_max
-                    pos[2] = torch.rand(1, device=self.device).item() * cube_depth - cube_depth/2 + cube_center[2]
-                elif face == 3:  # -y face
-                    pos[0] = torch.rand(1, device=self.device).item() * cube_width - cube_width/2 + cube_center[0]
-                    pos[1] = y_min
-                    pos[2] = torch.rand(1, device=self.device).item() * cube_depth - cube_depth/2 + cube_center[2]
-                elif face == 4:  # +z face
-                    pos[0] = torch.rand(1, device=self.device).item() * cube_width - cube_width/2 + cube_center[0]
-                    pos[1] = torch.rand(1, device=self.device).item() * cube_height - cube_height/2 + cube_center[1]
-                    pos[2] = z_max
-                else:  # -z face
-                    pos[0] = torch.rand(1, device=self.device).item() * cube_width - cube_width/2 + cube_center[0]
-                    pos[1] = torch.rand(1, device=self.device).item() * cube_height - cube_height/2 + cube_center[1]
-                    pos[2] = z_min
-                    
-                self.pose_command_w[env_id, :3] = pos
+        # For any remaining invalid positions, place them outside the cube
+        invalid_mask = ~valid_positions
+        if invalid_mask.any():
+            invalid_indices = torch.where(invalid_mask)[0]
+            invalid_env_ids = torch.tensor([env_ids[i] for i in invalid_indices], device=self.device) # type: ignore
+            n_invalid = len(invalid_indices)
+            
+            # Randomly select a face (0-5) for each invalid position
+            faces = torch.randint(0, 6, (n_invalid,), device=self.device)
+            
+            # Create a tensor to hold the new positions
+            new_positions = torch.zeros((n_invalid, 3), device=self.device)
+            
+            # Get relevant cube bounds for invalid environments
+            invalid_centers = cube_centers[invalid_indices]
+            invalid_mins = cube_min[invalid_indices]
+            invalid_maxs = cube_max[invalid_indices]
+            
+            # Helper for random positions on a face
+            rand_x = torch.rand(n_invalid, device=self.device) * cube_width - cube_width/2 + invalid_centers[:, 0]
+            rand_y = torch.rand(n_invalid, device=self.device) * cube_height - cube_height/2 + invalid_centers[:, 1]
+            rand_z = torch.rand(n_invalid, device=self.device) * cube_depth - cube_depth/2 + invalid_centers[:, 2]
+            
+            # +X face
+            mask = (faces == 0)
+            if mask.any():
+                new_positions[mask, 0] = invalid_maxs[mask, 0]
+                new_positions[mask, 1] = rand_y[mask]
+                new_positions[mask, 2] = rand_z[mask]
+            
+            # -X face
+            mask = (faces == 1)
+            if mask.any():
+                new_positions[mask, 0] = invalid_mins[mask, 0]
+                new_positions[mask, 1] = rand_y[mask]
+                new_positions[mask, 2] = rand_z[mask]
+            
+            # +Y face
+            mask = (faces == 2)
+            if mask.any():
+                new_positions[mask, 0] = rand_x[mask]
+                new_positions[mask, 1] = invalid_maxs[mask, 1]
+                new_positions[mask, 2] = rand_z[mask]
+            
+            # -Y face
+            mask = (faces == 3)
+            if mask.any():
+                new_positions[mask, 0] = rand_x[mask]
+                new_positions[mask, 1] = invalid_mins[mask, 1]
+                new_positions[mask, 2] = rand_z[mask]
+            
+            # +Z face
+            mask = (faces == 4)
+            if mask.any():
+                new_positions[mask, 0] = rand_x[mask]
+                new_positions[mask, 1] = rand_y[mask]
+                new_positions[mask, 2] = invalid_maxs[mask, 2]
+            
+            # -Z face
+            mask = (faces == 5)
+            if mask.any():
+                new_positions[mask, 0] = rand_x[mask]
+                new_positions[mask, 1] = rand_y[mask]
+                new_positions[mask, 2] = invalid_mins[mask, 2]
+            
+            # Update positions
+            self.pose_command_w[invalid_env_ids, :3] = new_positions
         # -- orientation
         euler_angles = torch.zeros_like(self.pose_command_w[env_ids, :3])
         euler_angles[:, 0].uniform_(*self.cfg.ranges.roll)
         euler_angles[:, 1].uniform_(*self.cfg.ranges.pitch)
         # Calculate yaw to face the robot base
-        robot_positions = cube_center  # Shape: [len(env_ids), 3]
+        robot_positions = cube_centers  # Shape: [len(env_ids), 3]
         robot_positions[:, 0] += 0.29
         for i, env_id in enumerate(env_ids):
             # Vector from target position to robot base
