@@ -37,7 +37,8 @@ class WorldPoseCommandCfg(CommandTermCfg):
     
     ranges: Ranges = MISSING # type: ignore
     
-    positions: None | list[tuple[float, float, float, float, float, float, float]] = MISSING # type: ignore
+    positions: list[tuple[float, float, float, float, float, float, float]] = [] # type: ignore
+    print_metrics: bool = False
 
     goal_pose_visualizer_cfg: VisualizationMarkersCfg = FRAME_MARKER_CFG.replace(prim_path="/Visuals/Command/goal_pose") # type: ignore
     """The configuration for the goal pose visualization marker. Defaults to FRAME_MARKER_CFG."""

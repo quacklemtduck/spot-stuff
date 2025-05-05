@@ -1,4 +1,5 @@
 from dataclasses import MISSING
+import datetime
 import torch
 from isaaclab.managers import CommandTermCfg, CommandTerm
 from isaaclab.utils import configclass
@@ -9,7 +10,7 @@ from isaaclab.markers import VisualizationMarkers
 from isaaclab.sensors import FrameTransformer
 
 if TYPE_CHECKING:
-    from isaaclab.envs import ManagerBasedEnv
+    from isaaclab.envs import ManagerBasedRLEnv
     from .commands_cfg import WorldPoseCommandCfg
 
 
@@ -17,7 +18,7 @@ if TYPE_CHECKING:
 class WorldPoseCommand(CommandTerm):
     cfg: "WorldPoseCommandCfg" = MISSING # type: ignore
 
-    def __init__(self, cfg: "WorldPoseCommandCfg", env: "ManagerBasedEnv"):
+    def __init__(self, cfg: "WorldPoseCommandCfg", env: "ManagerBasedRLEnv"):
         super().__init__(cfg, env) # type: ignore
         self.robot: Articulation = env.scene[cfg.asset_name]
         self.body_idx = self.robot.find_bodies(cfg.body_name)[0][0]
@@ -31,6 +32,19 @@ class WorldPoseCommand(CommandTerm):
         self.metrics["orientation_error"] = torch.zeros(self.num_envs, device=self.device)
 
         self.origins = torch.cat((env.scene.env_origins, torch.zeros(self.num_envs, 4, device=self.device)), 1)
+        if self.cfg.print_metrics:
+            timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            metrics_filename = f'metrics_log_{timestamp}.csv'
+            self.metrics_file = open(metrics_filename, 'w')
+            # Optional: write header
+            self.metrics_file.write('step, command_counter, position_error, orientation_error\n')
+
+    def __del__(self):
+        super().__del__()
+        if hasattr(self, 'metrics_file'):
+            self.metrics_file.close()
+    
+
     def __str__(self) -> str:
         msg = "WorldPoseCommand:\n"
         msg += f"\tCommand dimension: {tuple(self.command.shape[1:])}\n"
@@ -61,10 +75,21 @@ class WorldPoseCommand(CommandTerm):
         )
         self.metrics["position_error"] = torch.norm(pos_error, dim=-1)
         self.metrics["orientation_error"] = torch.norm(rot_error, dim=-1)
+        if self.cfg.print_metrics:
+            #print(f'{self._env.common_step_counter}, {(self.command_counter - 1)[0]}, {self.metrics["position_error"].mean()}, {self.metrics["orientation_error"].mean()}') # type: ignore
+            metrics_line = f'{self._env.common_step_counter}, {(self.command_counter - 1)[0] % len(self.cfg.positions)}, {self.metrics["position_error"].mean()}, {self.metrics["orientation_error"].mean()}\n' # type: ignore
+            self.metrics_file.write(metrics_line)
+            # Optional: flush to ensure data is written
+            self.metrics_file.flush()
+            if (self.command_counter)[0] > len(self.cfg.positions) * 2:
+                print("DONE")
+                self.cfg.print_metrics = False
+                self.metrics_file.close()
+                exit(0)
+        
 
     def _resample_command(self, env_ids: Sequence[int]):
         if self.cfg.positions is not None and len(self.cfg.positions) > 0:
-            print("Resample", self.command_counter, len(self.cfg.positions))
             # Convert positions list to a tensor for easy indexing
             # (Do this conversion once if possible, not in _resample_command)
             # For demonstration, converting here:
@@ -72,7 +97,7 @@ class WorldPoseCommand(CommandTerm):
             num_available_positions = positions_tensor.shape[0]
 
             # Get the current command counters for the selected environments
-            current_counters = self.command_counter[env_ids] - 1
+            current_counters = (self.command_counter[env_ids] - 1) % len(self.cfg.positions)
 
             # Create a mask for environments where the counter is a valid index
             valid_mask = current_counters < num_available_positions
@@ -93,15 +118,99 @@ class WorldPoseCommand(CommandTerm):
             return
         # sample new pose targets
         # -- position
+        
+        cube_center = self.robot.data.body_link_state_w[:, self.body_idx, :3] - self.origins[:, :3] # Center position of the cube deadzone [x, y, z]
+        cube_width = 0.9  # Width of the cube (x-dimension)
+        cube_height = 0.5  # Height of the cube (y-dimension)
+        cube_depth = 0.3  # Depth of the cube (z-dimension)
+        
+        # Calculate cube bounds
+        x_min = cube_center[:, 0] - cube_width/2
+        x_max = cube_center[:, 0] + cube_width/2
+        y_min = cube_center[:, 1] - cube_height/2
+        y_max = cube_center[:, 1] + cube_height/2
+        z_min = cube_center[:, 2] - 5
+        z_max = cube_center[:, 2] + cube_depth/2
         r = torch.empty(len(env_ids), device=self.device)
-        self.pose_command_w[env_ids, 0] = r.uniform_(*self.cfg.ranges.pos_x)
-        self.pose_command_w[env_ids, 1] = r.uniform_(*self.cfg.ranges.pos_y)
-        self.pose_command_w[env_ids, 2] = r.uniform_(*self.cfg.ranges.pos_z)
+        # Sample positions
+        valid_positions = torch.zeros(len(env_ids), dtype=torch.bool, device=self.device)
+        max_attempts = 10  # Avoid infinite loops
+        
+        for attempt in range(max_attempts):
+            # Sample positions for those that aren't valid yet
+            invalid_idx = torch.where(~valid_positions)[0]
+            if len(invalid_idx) == 0:
+                break
+                
+            # Sample new positions for invalid indices
+            invalid_env_ids = [env_ids[i] for i in invalid_idx] # type: ignore
+            self.pose_command_w[invalid_env_ids, 0] = r[invalid_idx].uniform_(*self.cfg.ranges.pos_x)
+            self.pose_command_w[invalid_env_ids, 1] = r[invalid_idx].uniform_(*self.cfg.ranges.pos_y)
+            self.pose_command_w[invalid_env_ids, 2] = r[invalid_idx].uniform_(*self.cfg.ranges.pos_z)
+            
+            # Check if positions are outside the cube
+            for i, env_id in enumerate(env_ids):
+                pos = self.pose_command_w[env_id, :3]
+                # A point is outside the cube if any coordinate is outside the cube's bounds
+                outside_x = (pos[0] < x_min) or (pos[0] > x_max)
+                outside_y = (pos[1] < y_min) or (pos[1] > y_max)
+                outside_z = (pos[2] < z_min) or (pos[2] > z_max)
+                valid_positions[i] = outside_x or outside_y or outside_z
+    
+    # If we still have invalid positions after max attempts, place them outside the cube
+        for i, env_id in enumerate(env_ids):
+            if not valid_positions[i]:
+                # Determine which face of the cube to place the point on
+                # Choose a random face (0-5) corresponding to the 6 faces of the cube
+                face = torch.randint(0, 6, (1,), device=self.device).item()
+                
+                # Create a position on that face
+                pos = torch.zeros(3, device=self.device)
+                
+                if face == 0:  # +x face
+                    pos[0] = x_max
+                    pos[1] = torch.rand(1, device=self.device).item() * cube_height - cube_height/2 + cube_center[1]
+                    pos[2] = torch.rand(1, device=self.device).item() * cube_depth - cube_depth/2 + cube_center[2]
+                elif face == 1:  # -x face
+                    pos[0] = x_min
+                    pos[1] = torch.rand(1, device=self.device).item() * cube_height - cube_height/2 + cube_center[1]
+                    pos[2] = torch.rand(1, device=self.device).item() * cube_depth - cube_depth/2 + cube_center[2]
+                elif face == 2:  # +y face
+                    pos[0] = torch.rand(1, device=self.device).item() * cube_width - cube_width/2 + cube_center[0]
+                    pos[1] = y_max
+                    pos[2] = torch.rand(1, device=self.device).item() * cube_depth - cube_depth/2 + cube_center[2]
+                elif face == 3:  # -y face
+                    pos[0] = torch.rand(1, device=self.device).item() * cube_width - cube_width/2 + cube_center[0]
+                    pos[1] = y_min
+                    pos[2] = torch.rand(1, device=self.device).item() * cube_depth - cube_depth/2 + cube_center[2]
+                elif face == 4:  # +z face
+                    pos[0] = torch.rand(1, device=self.device).item() * cube_width - cube_width/2 + cube_center[0]
+                    pos[1] = torch.rand(1, device=self.device).item() * cube_height - cube_height/2 + cube_center[1]
+                    pos[2] = z_max
+                else:  # -z face
+                    pos[0] = torch.rand(1, device=self.device).item() * cube_width - cube_width/2 + cube_center[0]
+                    pos[1] = torch.rand(1, device=self.device).item() * cube_height - cube_height/2 + cube_center[1]
+                    pos[2] = z_min
+                    
+                self.pose_command_w[env_id, :3] = pos
         # -- orientation
         euler_angles = torch.zeros_like(self.pose_command_w[env_ids, :3])
         euler_angles[:, 0].uniform_(*self.cfg.ranges.roll)
         euler_angles[:, 1].uniform_(*self.cfg.ranges.pitch)
-        euler_angles[:, 2].uniform_(*self.cfg.ranges.yaw)
+        # Calculate yaw to face the robot base
+        robot_positions = cube_center  # Shape: [len(env_ids), 3]
+        robot_positions[:, 0] += 0.29
+        for i, env_id in enumerate(env_ids):
+            # Vector from target position to robot base
+            direction = robot_positions[i] - self.pose_command_w[env_id, :3]
+            
+            # Calculate yaw angle (in xy-plane)
+            # atan2(y, x) gives the angle in the xy-plane
+            yaw = torch.atan2(direction[1], direction[0])
+            
+            # Flip the angle by 180 degrees so it faces toward the robot
+            # This assumes the forward direction of the end effector is along the x-axis
+            euler_angles[i, 2] = yaw + torch.pi
         quat = quat_from_euler_xyz(euler_angles[:, 0], euler_angles[:, 1], euler_angles[:, 2])
         # make sure the quaternion has real part as positive
         self.pose_command_w[env_ids, 3:] = quat

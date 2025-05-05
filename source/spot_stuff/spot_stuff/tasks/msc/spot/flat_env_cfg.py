@@ -78,8 +78,41 @@ class SpotCommandsCfg:
         body_name="body", # type: ignore
         ee_name="ee_frame",
         resampling_time_range=(2.0, 4.0),
+        debug_vis=True,
+        ranges=spot_mdp.WorldPoseCommandCfg.Ranges(
+            pos_x=(-0.4, 0.8),
+            pos_y=(-0.4, 0.4),
+            pos_z=(0.1, 0.8),
+            roll=(0.0, 0.0),
+            pitch=(math.pi / 4, math.pi / 2),  # depends on end-effector axis
+            yaw=(0, 0),
+        )
+    )
+
+@configclass
+class BenchmarkCommandsCfg:
+    """Command specifications for the MDP."""
+    base_velocity = mdp.UniformVelocityCommandCfg(
+        asset_name="robot",
+        resampling_time_range=(10.0, 10.0),
+        rel_standing_envs=0.1,
+        rel_heading_envs=0.0,
+        heading_command=False,
+        debug_vis=True,
+        ranges=mdp.UniformVelocityCommandCfg.Ranges(
+            lin_vel_x=(0.0, 0.0), lin_vel_y=(0.0, 0.0), ang_vel_z=(0.0, 0.0)
+            # lin_vel_x=(-2.0, 3.0), lin_vel_y=(-1.5, 1.5), ang_vel_z=(-2.0, 2.0)
+        ),
+    )
+
+    goal_command = spot_mdp.WorldPoseCommandCfg(
+        asset_name="robot",
+        body_name="body", # type: ignore
+        ee_name="ee_frame",
+        resampling_time_range=(2.0, 2.0),
         positions=[
             (0.5, 0.0, 0.5, 0.819, 0.0, 0.574, 0.0),
+            (-0.3, 0.151, 0.8, 0.179, -0.191, 0.031, 0.9646),
             (0.8, 0.0, 0.5, 0.819, 0.0, 0.574, 0.0),
             (0.5, 0.0, 0.1, 0.819, 0.0, 0.574, 0.0),
             (0.5, 0.0, 0.8, 0.819, 0.0, 0.574, 0.0),
@@ -88,12 +121,14 @@ class SpotCommandsCfg:
             (0.5, -0.4, 0.5, 0.819, 0.0, 0.574, 0.0),
             (0.5, -0.4, 0.8, 0.819, 0.0, 0.574, 0.0),
             (0.8, -0.4, 0.8, 0.819, 0.0, 0.574, 0.0),
+            
         ],
+        print_metrics=True,
         debug_vis=True,
         ranges=spot_mdp.WorldPoseCommandCfg.Ranges(
             pos_x=(0.5, 0.8),
             pos_y=(-0.4, 0.4),
-            pos_z=(0.5, 0.8),
+            pos_z=(0.1, 0.8),
             roll=(0.0, 0.0),
             pitch=(math.pi / 4, math.pi / 2),  # depends on end-effector axis
             yaw=(0, 0),
@@ -395,11 +430,12 @@ class CurriculumCfg:
 
 @configclass
 class MscEnvCfg(ManagerBasedRLEnvCfg):
+    
     scene: SpotSceneCfg = SpotSceneCfg(num_envs=1024, env_spacing=2.5)
     # Basic settings'
     observations: SpotObservationsCfg = SpotObservationsCfg()
     actions: SpotActionsCfg = SpotActionsCfg()
-    commands: SpotCommandsCfg = SpotCommandsCfg()
+    commands: SpotCommandsCfg | BenchmarkCommandsCfg = SpotCommandsCfg()
 
     # MDP setting
     rewards: SpotRewardsCfg = SpotRewardsCfg()
@@ -458,12 +494,14 @@ class SpotFlatEnvCfg_PLAY(MscEnvCfg):
 
 class SpotFlatEnv_Benchmark(MscEnvCfg):
 
-    terminations = BenchmarkTerminationsCfg()
-
     def __post_init__(self) -> None:
         # post init of parent
         super().__post_init__()
 
+        self.terminations = BenchmarkTerminationsCfg()
+        self.commands = BenchmarkCommandsCfg()
+
+        self.episode_length_s = 1000
         # make a smaller scene for play
         self.scene.num_envs = 1
         self.scene.env_spacing = 2.5
