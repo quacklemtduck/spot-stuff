@@ -138,7 +138,12 @@ class WorldPoseCommand(CommandTerm):
         # Sample positions
         valid_positions = torch.zeros(len(env_ids), dtype=torch.bool, device=self.device)
         max_attempts = 10  # Avoid infinite loops
-        env_ids_tensor = torch.tensor(env_ids, device=self.device)
+        if isinstance(env_ids, torch.Tensor):
+        # If already a tensor, ensure it's on the correct device
+            env_ids_tensor = env_ids.to(device=self.device)
+        else:
+            # If it's a sequence (list, tuple, etc.), convert to tensor
+            env_ids_tensor = torch.tensor(env_ids, device=self.device)
         for attempt in range(max_attempts):
             # Find which environments still need valid positions
             invalid_mask = ~valid_positions
