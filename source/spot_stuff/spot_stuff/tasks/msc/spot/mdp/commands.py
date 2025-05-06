@@ -121,7 +121,7 @@ class WorldPoseCommand(CommandTerm):
         
         cube_centers = self.robot.data.body_link_state_w[:, self.body_idx, :3] - self.origins[:, :3] # Center position of the cube deadzone [x, y, z]
         cube_width = 0.9  # Width of the cube (x-dimension)
-        cube_height = 0.5  # Height of the cube (y-dimension)
+        cube_height = 0.8  # Height of the cube (y-dimension)
         cube_depth = 0.3  # Depth of the cube (z-dimension)
         
         # Calculate cube bounds
