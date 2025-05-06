@@ -89,6 +89,7 @@ class WorldPoseCommand(CommandTerm):
         
 
     def _resample_command(self, env_ids: Sequence[int]):
+        cube_centers = self.robot.data.body_link_state_w[:, self.body_idx, :3] - self.origins[:, :3] # Center position of the cube deadzone [x, y, z]
         if self.cfg.positions is not None and len(self.cfg.positions) > 0:
             # Convert positions list to a tensor for easy indexing
             # (Do this conversion once if possible, not in _resample_command)
@@ -115,12 +116,33 @@ class WorldPoseCommand(CommandTerm):
 
                 # Assign the new commands to the selected environments
                 self.pose_command_w[valid_env_ids] = new_commands
+                # -- orientation
+                euler_angles = torch.zeros_like(self.pose_command_w[env_ids, :3])
+                euler_angles[:, 0].uniform_(*self.cfg.ranges.roll)
+                euler_angles[:, 1].uniform_(*self.cfg.ranges.pitch)
+                # Calculate yaw to face the robot base
+                robot_positions = cube_centers  # Shape: [len(env_ids), 3]
+                robot_positions[:, 0] += 0.29
+                for i, env_id in enumerate(env_ids):
+                    # Vector from target position to robot base
+                    direction = robot_positions[i] - self.pose_command_w[env_id, :3]
+                    
+                    # Calculate yaw angle (in xy-plane)
+                    # atan2(y, x) gives the angle in the xy-plane
+                    yaw = torch.atan2(direction[1], direction[0])
+                    
+                    # Flip the angle by 180 degrees so it faces toward the robot
+                    # This assumes the forward direction of the end effector is along the x-axis
+                    euler_angles[i, 2] = yaw + torch.pi
+                quat = quat_from_euler_xyz(euler_angles[:, 0], euler_angles[:, 1], euler_angles[:, 2])
+                # make sure the quaternion has real part as positive
+                self.pose_command_w[env_ids, 3:] = quat
             return
         # sample new pose targets
         # -- position
         
-        cube_centers = self.robot.data.body_link_state_w[:, self.body_idx, :3] - self.origins[:, :3] # Center position of the cube deadzone [x, y, z]
-        cube_width = 0.9  # Width of the cube (x-dimension)
+        
+        cube_width = 0.8  # Width of the cube (x-dimension)
         cube_height = 0.8  # Height of the cube (y-dimension)
         cube_depth = 0.3  # Depth of the cube (z-dimension)
         
