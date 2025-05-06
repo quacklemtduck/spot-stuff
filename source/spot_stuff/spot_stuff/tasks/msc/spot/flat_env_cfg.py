@@ -168,6 +168,7 @@ class SpotObservationsCfg:
         arm_command = ObsTerm(func=mdp.generated_commands, params={"command_name": "goal_command"})
         
         finger_obs = ObsTerm(func=spot_mdp.object_obs)
+        body_obs = ObsTerm(func=spot_mdp.body_obs)
         # arm_vel = ObsTerm(
         #     func=mdp.joint_vel_rel, params={"asset_cfg": SceneEntityCfg("robot", joint_names="arm0_.*")}, noise=Unoise(n_min=-0.5, n_max=0.5)
         # )
@@ -346,11 +347,11 @@ class SpotRewardsCfg:
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=".*_h[xy]")},
     )
 
-    body_orentation = RewardTermCfg(
-        func=spot_mdp.body_orientation_penalty_exp,
-        weight=-0.0001,
-        params={"asset_cfg": SceneEntityCfg("robot", body_names="body")},
-    )
+    # body_orentation = RewardTermCfg(
+    #     func=spot_mdp.body_orientation_penalty_exp,
+    #     weight=-0.0001,
+    #     params={"asset_cfg": SceneEntityCfg("robot", body_names="body")},
+    # )
     # joint_torques = RewardTermCfg(
     #     func=spot_mdp.joint_torques_penalty,
     #     weight=-5.0e-3,

@@ -18,3 +18,11 @@ def object_obs(
     quat = ee_frame.data.target_quat_w.squeeze(1)
     return torch.cat((position, quat), -1)
     
+def body_obs(
+        env: "ManagerBasedRLEnv",
+        ee_frame_cfg: SceneEntityCfg = SceneEntityCfg("ee_frame")
+):
+    ee_frame: FrameTransformer = env.scene[ee_frame_cfg.name]
+    position = ee_frame.data.source_pos_w - env.scene.env_origins
+    quat = ee_frame.data.source_quat_w
+    return torch.cat((position, quat), -1)
