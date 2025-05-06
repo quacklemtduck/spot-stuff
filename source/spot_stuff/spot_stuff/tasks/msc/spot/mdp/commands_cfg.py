@@ -37,7 +37,7 @@ class WorldPoseCommandCfg(CommandTermCfg):
     
     ranges: Ranges = MISSING # type: ignore
     
-    positions: list[tuple[float, float, float, float, float, float, float]] = [] # type: ignore
+    positions: list[list[tuple[float, float, float, float, float, float, float]]] = [] # type: ignore
     print_metrics: bool = False
 
     goal_pose_visualizer_cfg: VisualizationMarkersCfg = FRAME_MARKER_CFG.replace(prim_path="/Visuals/Command/goal_pose") # type: ignore

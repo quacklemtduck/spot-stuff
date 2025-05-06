@@ -23,6 +23,9 @@ class WorldPoseCommand(CommandTerm):
         self.robot: Articulation = env.scene[cfg.asset_name]
         self.body_idx = self.robot.find_bodies(cfg.body_name)[0][0]
         self.ee_frame: FrameTransformer = env.scene[cfg.ee_name]
+
+        self.pos_group = 0
+        self.position_tensor = [torch.tensor(position, dtype=torch.float32, device=self.device) for position in self.cfg.positions]
         # create buffers
         # -- commands: (x, y, z, qw, qx, qy, qz) in root frame
         self.pose_command_w = torch.zeros(self.num_envs, 7, device=self.device)
@@ -34,7 +37,7 @@ class WorldPoseCommand(CommandTerm):
         self.origins = torch.cat((env.scene.env_origins, torch.zeros(self.num_envs, 4, device=self.device)), 1)
         if self.cfg.print_metrics:
             timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            metrics_filename = f'metrics_log_{timestamp}.csv'
+            metrics_filename = f'metrics_log_{self.pos_group}_{timestamp}.csv'
             self.metrics_file = open(metrics_filename, 'w')
             # Optional: write header
             self.metrics_file.write('step, command_counter, position_error, orientation_error\n')
@@ -77,15 +80,10 @@ class WorldPoseCommand(CommandTerm):
         self.metrics["orientation_error"] = torch.norm(rot_error, dim=-1)
         if self.cfg.print_metrics:
             #print(f'{self._env.common_step_counter}, {(self.command_counter - 1)[0]}, {self.metrics["position_error"].mean()}, {self.metrics["orientation_error"].mean()}') # type: ignore
-            metrics_line = f'{self._env.common_step_counter}, {(self.command_counter - 1)[0] % len(self.cfg.positions)}, {self.metrics["position_error"].mean()}, {self.metrics["orientation_error"].mean()}\n' # type: ignore
+            metrics_line = f'{self._env.common_step_counter}, {(self.command_counter - 1)[0]}, {self.metrics["position_error"].mean()}, {self.metrics["orientation_error"].mean()}\n' # type: ignore
             self.metrics_file.write(metrics_line)
             # Optional: flush to ensure data is written
             self.metrics_file.flush()
-            if (self.command_counter)[0] > len(self.cfg.positions) * 2:
-                print("DONE")
-                self.cfg.print_metrics = False
-                self.metrics_file.close()
-                exit(0)
         
 
     def _resample_command(self, env_ids: Sequence[int]):
@@ -94,11 +92,28 @@ class WorldPoseCommand(CommandTerm):
             # Convert positions list to a tensor for easy indexing
             # (Do this conversion once if possible, not in _resample_command)
             # For demonstration, converting here:
-            positions_tensor = torch.tensor(self.cfg.positions, dtype=torch.float32, device=self.device)
+            if self.command_counter[0] > len(self.position_tensor[self.pos_group]):
+                self.command_counter[:] = 1
+                self.pos_group += 1
+                if self.cfg.print_metrics:
+                    self.metrics_file.close()
+                    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                    metrics_filename = f'metrics_log_{self.pos_group}_{timestamp}.csv'
+                    self.metrics_file = open(metrics_filename, 'w')
+                    # Optional: write header
+                    self.metrics_file.write('step, command_counter, position_error, orientation_error\n')
+          
+            if self.pos_group >= len(self.position_tensor):
+                print("DONE")
+                self.cfg.print_metrics = False
+                self.metrics_file.close()
+                exit(0)
+
+            positions_tensor = self.position_tensor[self.pos_group]
             num_available_positions = positions_tensor.shape[0]
 
             # Get the current command counters for the selected environments
-            current_counters = (self.command_counter[env_ids] - 1) % len(self.cfg.positions)
+            current_counters = (self.command_counter[env_ids] - 1)
 
             # Create a mask for environments where the counter is a valid index
             valid_mask = current_counters < num_available_positions
