@@ -11,7 +11,7 @@ from isaaclab.utils import configclass
 @configclass
 class SpotFlatPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 24
-    max_iterations = 50000
+    max_iterations = 10000
     save_interval = 50
     experiment_name = "spot_flat"
     empirical_normalization = False
