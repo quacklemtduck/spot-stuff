@@ -323,11 +323,11 @@ class SpotRewardsCfg:
         params={"ee_frame_cfg": SceneEntityCfg("ee_frame")},
     )
 
-    good_boy_points = RewardTermCfg(
-        func=spot_mdp.good_boy_points,
-        weight= -0.5,
-        params={"asset_cfg": SceneEntityCfg("robot", body_names="body")}
-    )
+    # good_boy_points = RewardTermCfg(
+    #     func=spot_mdp.good_boy_points,
+    #     weight= -0.5,
+    #     params={"asset_cfg": SceneEntityCfg("robot", body_names="body")}
+    # )
    
 
     # -- penalties
@@ -457,7 +457,7 @@ class CurriculumCfg:
     )
 
     joint_vel = CurrTerm(
-        func=mdp.modify_reward_weight, params={"term_name": "joint_arm_vel", "weight": -0.001, "num_steps": 18500}
+        func=mdp.modify_reward_weight, params={"term_name": "joint_arm_vel", "weight": -0.01, "num_steps": 18500}
     )
 
     catchy_increase = CurrTerm(
