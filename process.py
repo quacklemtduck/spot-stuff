@@ -1,13 +1,14 @@
 import pandas as pd
 import os
-import glob
 import re
 import argparse
 from datetime import datetime
+from collections import OrderedDict
 
 def collect_processed_files(base_dir, output_dir):
     """
-    Collect all processed metrics files and combine them by log number.
+    Collect all processed metrics files and combine them by log number,
+    with commands as rows and folders (sorted by name) as columns.
     
     Parameters:
     base_dir (str): Base directory to search for processed files
@@ -60,27 +61,94 @@ def collect_processed_files(base_dir, output_dir):
     for log_number, file_paths in log_groups.items():
         print(f"\nProcessing log group {log_number} with {len(file_paths)} files")
         
-        # Combine all files in this group
-        combined_data = []
+        # First, identify all unique folder names and sort them
+        folder_names = []
+        file_paths_by_folder = {}
         
         for file_path in file_paths:
+            folder_name = os.path.basename(os.path.dirname(file_path))
+            if folder_name not in folder_names:
+                folder_names.append(folder_name)
+                file_paths_by_folder[folder_name] = file_path
+        
+        # Sort folder names alphabetically
+        folder_names.sort()
+        print(f"  Found {len(folder_names)} unique folders: {folder_names}")
+        
+        # Dictionary to hold data from each folder
+        folder_data = {}
+        
+        # Columns to use for the combined data
+        metrics_columns = [
+            'avg_position_error', 
+            'avg_orientation_error', 
+            'position_error_rate', 
+            'orientation_error_rate',
+            'position_r_squared',
+            'orientation_r_squared',
+            'max_position_error',
+            'min_position_error',
+            'max_orientation_error',
+            'min_orientation_error',
+            'position_error_pct_change',
+            'orientation_error_pct_change',
+            'num_steps'
+        ]
+        
+        # Process each folder in sorted order
+        for folder_name in folder_names:
+            file_path = file_paths_by_folder[folder_name]
             try:
                 # Load the CSV file
                 df = pd.read_csv(file_path)
                 
-                # Add source information
-                folder_name = os.path.basename(os.path.dirname(file_path))
-                df['source_folder'] = folder_name
-                df['source_file'] = os.path.basename(file_path)
+                print(f"  Processing {folder_name} from {file_path}")
                 
-                combined_data.append(df)
-                print(f"  Added {file_path}")
+                # Check if the file has the expected structure
+                if 'command' not in df.columns:
+                    print(f"  Warning: {file_path} doesn't have a 'command' column, skipping")
+                    continue
+                
+                # Store data by command
+                for _, row in df.iterrows():
+                    command = row['command']
+                    
+                    if command not in folder_data:
+                        folder_data[command] = OrderedDict()
+                    
+                    # Add metrics for this folder
+                    for metric in metrics_columns:
+                        if metric in row:
+                            column_name = f"{folder_name}_{metric}"
+                            folder_data[command][column_name] = row[metric]
+            
             except Exception as e:
                 print(f"  Error processing {file_path}: {str(e)}")
         
-        if combined_data:
-            # Combine all DataFrames
-            combined_df = pd.concat(combined_data, ignore_index=True)
+        if folder_data:
+            # Convert to DataFrame
+            combined_df = pd.DataFrame.from_dict(folder_data, orient='index')
+            combined_df.index.name = 'command'
+            combined_df.reset_index(inplace=True)
+            
+            # Sort commands numerically if possible
+            try:
+                combined_df['command'] = pd.to_numeric(combined_df['command']).astype(int)
+                combined_df = combined_df.sort_values('command')
+            except:
+                # If commands can't be converted to numbers, sort them as strings
+                combined_df = combined_df.sort_values('command')
+            
+            # Ensure columns are in the correct order (sorted by folder name)
+            columns = ['command']
+            for folder_name in folder_names:
+                for metric in metrics_columns:
+                    column_name = f"{folder_name}_{metric}"
+                    if column_name in combined_df.columns:
+                        columns.append(column_name)
+            
+            # Reorder columns
+            combined_df = combined_df[columns]
             
             # Create output filename
             timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
@@ -89,26 +157,13 @@ def collect_processed_files(base_dir, output_dir):
             
             # Save combined data
             combined_df.to_csv(output_path, index=False)
-            print(f"  Saved combined data to {output_path}")
-            
-            # Generate summary statistics
-            summary_by_folder = combined_df.groupby(['source_folder', 'command']).agg({
-                'avg_position_error': 'mean',
-                'avg_orientation_error': 'mean',
-                'position_error_rate': 'mean',
-                'orientation_error_rate': 'mean'
-            })
-            
-            summary_filename = f"summary_log_{log_number}_{timestamp}.csv"
-            summary_path = os.path.join(output_dir, summary_filename)
-            summary_by_folder.to_csv(summary_path)
-            print(f"  Saved summary to {summary_path}")
+            print(f"  Saved combined data to {output_path} with {len(combined_df)} commands")
             
             stats['combined_files'].append({
                 'log_number': log_number,
                 'files_combined': len(file_paths),
-                'output_file': output_path,
-                'summary_file': summary_path
+                'commands_combined': len(folder_data),
+                'output_file': output_path
             })
     
     return stats
@@ -142,8 +197,8 @@ def main():
     for combined_file in stats['combined_files']:
         print(f"\nLog {combined_file['log_number']}:")
         print(f"  Files combined: {combined_file['files_combined']}")
+        print(f"  Commands combined: {combined_file['commands_combined']}")
         print(f"  Output file: {combined_file['output_file']}")
-        print(f"  Summary file: {combined_file['summary_file']}")
     
     return 0
 
