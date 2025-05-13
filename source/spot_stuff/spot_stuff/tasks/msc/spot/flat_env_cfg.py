@@ -203,7 +203,7 @@ class SpotObservationsCfg:
         arm_command = ObsTerm(func=mdp.generated_commands, params={"command_name": "goal_command"})
         
         finger_obs = ObsTerm(func=spot_mdp.object_obs)
-        #body_obs = ObsTerm(func=spot_mdp.body_obs)
+        body_obs = ObsTerm(func=spot_mdp.body_obs)
         # arm_vel = ObsTerm(
         #     func=mdp.joint_vel_rel, params={"asset_cfg": SceneEntityCfg("robot", joint_names="arm0_.*")}, noise=Unoise(n_min=-0.5, n_max=0.5)
         # )
@@ -277,15 +277,15 @@ class SpotEventCfg:
     )
 
     # # interval
-    # push_robot = EventTerm(
-    #     func=mdp.push_by_setting_velocity,
-    #     mode="interval",
-    #     interval_range_s=(10.0, 15.0),
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("robot"),
-    #         "velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)},
-    #     },
-    # )
+    push_robot = EventTerm(
+        func=mdp.push_by_setting_velocity,
+        mode="interval",
+        interval_range_s=(10.0, 15.0),
+        params={
+            "asset_cfg": SceneEntityCfg("robot"),
+            "velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)},
+        },
+    )
 
 
 @configclass
