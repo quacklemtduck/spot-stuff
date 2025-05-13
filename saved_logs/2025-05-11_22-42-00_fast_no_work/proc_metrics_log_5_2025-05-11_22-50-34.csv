@@ -1,0 +1,2 @@
+command,num_steps,avg_position_error,avg_orientation_error,position_error_rate,orientation_error_rate,position_r_squared,orientation_r_squared,max_position_error,min_position_error,max_orientation_error,min_orientation_error,position_error_pct_change,orientation_error_pct_change
+0,101,0.3796270141507139,0.20521216876435988,-5.343235642950273e-05,-8.769416330023033e-06,0.13985890569144488,8.935224885891695e-05,0.4076156616210937,0.3773724436759949,0.4330758452415466,0.1769565045833587,-6.881417927733169,-52.84823144903244
