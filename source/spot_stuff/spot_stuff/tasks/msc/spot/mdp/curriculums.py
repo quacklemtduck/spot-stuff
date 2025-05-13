@@ -33,10 +33,10 @@ def catchy_increase(
         oritentation.weight = -0.5
         env.reward_manager.set_term_cfg("end_effector_orientation_tracking", oritentation)
 
-        # if env.common_step_counter > target + 8500:
-        #     body_orientation = env.reward_manager.get_term_cfg("body_orentation")
-        #     body_orientation.weight = -0.5
-        #     env.reward_manager.set_term_cfg("body_orentation", body_orientation)
+        if env.common_step_counter > target + 8500:
+            body_orientation = env.reward_manager.get_term_cfg("body_orentation")
+            body_orientation.weight = -0.5
+            env.reward_manager.set_term_cfg("body_orentation", body_orientation)
         
 
     return val

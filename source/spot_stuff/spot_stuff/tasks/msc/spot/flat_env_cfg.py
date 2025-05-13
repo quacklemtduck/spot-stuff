@@ -277,15 +277,15 @@ class SpotEventCfg:
     )
 
     # # interval
-    push_robot = EventTerm(
-        func=mdp.push_by_setting_velocity,
-        mode="interval",
-        interval_range_s=(10.0, 15.0),
-        params={
-            "asset_cfg": SceneEntityCfg("robot"),
-            "velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)},
-        },
-    )
+    # push_robot = EventTerm(
+    #     func=mdp.push_by_setting_velocity,
+    #     mode="interval",
+    #     interval_range_s=(10.0, 15.0),
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot"),
+    #         "velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)},
+    #     },
+    # )
 
 
 @configclass
@@ -382,11 +382,11 @@ class SpotRewardsCfg:
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=".*_h[xy]")},
     )
 
-    # body_orentation = RewardTermCfg(
-    #     func=spot_mdp.body_orientation_penalty_exp,
-    #     weight=-0.0001,
-    #     params={"asset_cfg": SceneEntityCfg("robot", body_names="body")},
-    # )
+    body_orentation = RewardTermCfg(
+        func=spot_mdp.body_orientation_penalty_exp,
+        weight=-0.0001,
+        params={"asset_cfg": SceneEntityCfg("robot", body_names="body")},
+    )
     # joint_torques = RewardTermCfg(
     #     func=spot_mdp.joint_torques_penalty,
     #     weight=-5.0e-3,
