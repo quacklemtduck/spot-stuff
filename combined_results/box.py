@@ -30,12 +30,12 @@ def load_data(file_path):
     
     return df
 
-# Create boxplot visualization with data points
+# Create boxplot visualization with distinguishable data points
 def plot_position_error_boxplot(df, metric="avg_position_error", 
                                 title="Average Position Error Distribution Across Model Versions", 
                                 yLabel="Average Position Error",
                                 output_file="position_error_boxplot.png"):
-    plt.figure(figsize=(12, 8))
+    plt.figure(figsize=(14, 9))
     
     # Extract unique dates from column names
     all_dates = set()
@@ -66,30 +66,55 @@ def plot_position_error_boxplot(df, metric="avg_position_error",
         matching_cols = [col for col in df.columns if date in col and metric in col]
         if matching_cols:
             # Get all values for this date/metric across all commands
-            values = df[matching_cols[0]].dropna().values
+            values_with_commands = []
+            for command in df.index:
+                if not pd.isna(df.loc[command, matching_cols[0]]):
+                    values_with_commands.append((command, df.loc[command, matching_cols[0]]))
+            
+            values = [v[1] for v in values_with_commands]
+            commands = [v[0] for v in values_with_commands]
+            
             boxplot_data.append(values)
             labels.append(date_alias.get(date, date))
-            all_data_points.append((i + 1, values))  # Store position and values
+            all_data_points.append((i + 1, values_with_commands))
     
-    # Create boxplot
+    # Create boxplot with higher transparency and lower z-order
     box_plot = plt.boxplot(boxplot_data, labels=labels, patch_artist=True)
     
-    # Customize boxplot colors
+    # Customize boxplot colors with higher transparency
     colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b']
     for patch, color in zip(box_plot['boxes'], colors[:len(box_plot['boxes'])]):
         patch.set_facecolor(color)
-        patch.set_alpha(0.7)
+        patch.set_alpha(0.4)  # More transparent
+        patch.set_zorder(1)   # Lower z-order
     
-    # Customize other elements
+    # Customize other elements with lower z-order
     for element in ['whiskers', 'fliers', 'medians', 'caps']:
-        plt.setp(box_plot[element], color='black')
+        plt.setp(box_plot[element], color='black', zorder=1)
     
-    # Add individual data points
-    for pos, values in all_data_points:
-        # Add some jitter to x-coordinates to avoid overlapping
-        x_jitter = np.random.normal(pos, 0.04, size=len(values))
-        plt.scatter(x_jitter, values, alpha=0.6, s=30, color='red', 
-                   edgecolors='darkred', linewidth=0.5, zorder=3)
+    # Define colors and markers for different commands
+    unique_commands = sorted(df.index.unique())
+    command_colors = plt.cm.tab10(np.arange(len(unique_commands)))
+    markers = ['o', 's', '^', 'v', 'd', '*', 'p', 'h', 'X', '+']
+    
+    # Add individual data points without jitter with high z-order
+    plotted_commands = set()
+    for pos, values_with_commands in all_data_points:
+        for command, value in values_with_commands:
+            cmd_idx = unique_commands.index(command)
+            color = command_colors[cmd_idx]
+            marker = markers[cmd_idx % len(markers)]
+            
+            # Only add to legend once per command
+            label = f'Command {command}' if command not in plotted_commands else None
+            plotted_commands.add(command)
+            
+            plt.scatter(pos, value, alpha=0.9, s=80, color=color, 
+                       marker=marker, edgecolors='black', linewidth=1, 
+                       zorder=10, label=label)  # High z-order to appear on top
+    
+    # Add legend
+    plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left', fontsize=10)
     
     # Formatting
     plt.title(title, fontsize=16, pad=20)
@@ -99,8 +124,8 @@ def plot_position_error_boxplot(df, metric="avg_position_error",
     # Rotate x-axis labels if needed
     plt.xticks(rotation=45, ha='right', fontsize=12)
     
-    # Add grid
-    plt.grid(True, linestyle='--', alpha=0.7, axis='y')
+    # Add grid with low z-order
+    plt.grid(True, linestyle='--', alpha=0.7, axis='y', zorder=0)
     
     # Tight layout to prevent clipping
     plt.tight_layout()
@@ -111,13 +136,12 @@ def plot_position_error_boxplot(df, metric="avg_position_error",
     
     plt.close()  # Ensure we close the figure
 
-# Seaborn version with data points (using stripplot)
+# Seaborn version with distinguishable data points
 def plot_position_error_boxplot_seaborn(df, metric="avg_position_error", 
                                         title="Average Position Error Distribution Across Model Versions", 
                                         yLabel="Average Position Error",
-                                        output_file="position_error_boxplot_seaborn.png",
-                                        use_swarm=False):
-    plt.figure(figsize=(12, 8))
+                                        output_file="position_error_boxplot_seaborn.png"):
+    plt.figure(figsize=(14, 9))
     
     # Extract unique dates from column names
     all_dates = set()
@@ -146,29 +170,53 @@ def plot_position_error_boxplot_seaborn(df, metric="avg_position_error",
         matching_cols = [col for col in df.columns if date in col and metric in col]
         if matching_cols:
             # Get all values for this date/metric across all commands
-            values = df[matching_cols[0]].dropna().values
-            for value in values:
-                plot_data.append({
-                    'Model Version': date_alias.get(date, date),
-                    'Value': value
-                })
+            for command in df.index:
+                if not pd.isna(df.loc[command, matching_cols[0]]):
+                    plot_data.append({
+                        'Model Version': date_alias.get(date, date),
+                        'Value': df.loc[command, matching_cols[0]],
+                        'Command': command
+                    })
     
     # Convert to DataFrame
     plot_df = pd.DataFrame(plot_data)
     
-    # Create boxplot using seaborn
-    sns.boxplot(data=plot_df, x='Model Version', y='Value', 
-                palette=['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b'])
+    # Create boxplot using seaborn with transparency
+    ax = sns.boxplot(data=plot_df, x='Model Version', y='Value', 
+                     palette=['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b'])
     
-    # Add individual data points
-    if use_swarm:
-        # Swarmplot tries to avoid overlapping points but may be slow with many points
-        sns.swarmplot(data=plot_df, x='Model Version', y='Value', 
-                     color='red', alpha=0.6, size=4)
-    else:
-        # Stripplot is faster and adds jitter
-        sns.stripplot(data=plot_df, x='Model Version', y='Value', 
-                     color='red', alpha=0.6, size=4, jitter=True)
+    # Make boxplot more transparent
+    for patch in ax.artists:
+        patch.set_alpha(0.6)
+    
+    # Add individual data points without jitter, colored by command
+    unique_commands = sorted(plot_df['Command'].unique())
+    command_colors = plt.cm.tab10(np.arange(len(unique_commands)))
+    markers = ['o', 's', '^', 'v', 'd', '*', 'p', 'h', 'X', '+']
+    
+    # Plot points for each command
+    for i, command in enumerate(unique_commands):
+        command_data = plot_df[plot_df['Command'] == command]
+        color = command_colors[i]
+        marker = markers[i % len(markers)]
+        
+        # Get x positions for each model version
+        model_versions = command_data['Model Version'].unique()
+        for model_version in model_versions:
+            model_data = command_data[command_data['Model Version'] == model_version]
+            # Get the x position for this model version
+            x_pos = plot_df['Model Version'].unique().tolist().index(model_version)
+            
+            plt.scatter([x_pos] * len(model_data), model_data['Value'], 
+                       color=color, marker=marker, s=80, alpha=0.9, 
+                       edgecolor='black', linewidth=1, zorder=10,
+                       label=f'Command {command}' if model_version == model_versions[0] else "")
+    
+    # Remove duplicate legend entries
+    handles, labels_legend = plt.gca().get_legend_handles_labels()
+    by_label = dict(zip(labels_legend, handles))
+    plt.legend(by_label.values(), by_label.keys(), 
+              bbox_to_anchor=(1.02, 1), loc='upper left', fontsize=10)
     
     # Formatting
     plt.title(title, fontsize=16, pad=20)
@@ -187,12 +235,12 @@ def plot_position_error_boxplot_seaborn(df, metric="avg_position_error",
     
     plt.close()  # Ensure we close the figure
 
-# Enhanced seaborn version with violin plots + points
+# Enhanced seaborn version with violin plots + distinguishable points
 def plot_position_error_violin(df, metric="avg_position_error", 
                               title="Average Position Error Distribution Across Model Versions", 
                               yLabel="Average Position Error",
                               output_file="position_error_violin.png"):
-    plt.figure(figsize=(12, 8))
+    plt.figure(figsize=(14, 9))
     
     # Extract unique dates from column names
     all_dates = set()
@@ -221,24 +269,50 @@ def plot_position_error_violin(df, metric="avg_position_error",
         matching_cols = [col for col in df.columns if date in col and metric in col]
         if matching_cols:
             # Get all values for this date/metric across all commands
-            values = df[matching_cols[0]].dropna().values
-            for value in values:
-                plot_data.append({
-                    'Model Version': date_alias.get(date, date),
-                    'Value': value
-                })
+            for command in df.index:
+                if not pd.isna(df.loc[command, matching_cols[0]]):
+                    plot_data.append({
+                        'Model Version': date_alias.get(date, date),
+                        'Value': df.loc[command, matching_cols[0]],
+                        'Command': command
+                    })
     
     # Convert to DataFrame
     plot_df = pd.DataFrame(plot_data)
     
-    # Create violin plot with boxplot inside
-    sns.violinplot(data=plot_df, x='Model Version', y='Value', 
-                  palette=['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b'],
-                  inner='box')
+    # Create violin plot with boxplot inside and transparency
+    ax = sns.violinplot(data=plot_df, x='Model Version', y='Value', 
+                       palette=['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b'],
+                       inner='box', alpha=0.6)
     
-    # Add individual data points
-    sns.stripplot(data=plot_df, x='Model Version', y='Value', 
-                 color='red', alpha=0.6, size=3, jitter=True)
+    # Add individual data points without jitter, colored by command
+    unique_commands = sorted(plot_df['Command'].unique())
+    command_colors = plt.cm.tab10(np.arange(len(unique_commands)))
+    markers = ['o', 's', '^', 'v', 'd', '*', 'p', 'h', 'X', '+']
+    
+    # Plot points for each command
+    for i, command in enumerate(unique_commands):
+        command_data = plot_df[plot_df['Command'] == command]
+        color = command_colors[i]
+        marker = markers[i % len(markers)]
+        
+        # Get x positions for each model version
+        model_versions = command_data['Model Version'].unique()
+        for model_version in model_versions:
+            model_data = command_data[command_data['Model Version'] == model_version]
+            # Get the x position for this model version
+            x_pos = plot_df['Model Version'].unique().tolist().index(model_version)
+            
+            plt.scatter([x_pos] * len(model_data), model_data['Value'], 
+                       color=color, marker=marker, s=70, alpha=0.9, 
+                       edgecolor='black', linewidth=1, zorder=10,
+                       label=f'Command {command}' if model_version == model_versions[0] else "")
+    
+    # Remove duplicate legend entries
+    handles, labels_legend = plt.gca().get_legend_handles_labels()
+    by_label = dict(zip(labels_legend, handles))
+    plt.legend(by_label.values(), by_label.keys(), 
+              bbox_to_anchor=(1.02, 1), loc='upper left', fontsize=10)
     
     # Formatting
     plt.title(title, fontsize=16, pad=20)
@@ -278,21 +352,23 @@ def make_plot(file_path: str, metric, title, yLabel, plot_type="boxplot", use_se
 if __name__ == "__main__":
     files = ["combined_log_0.csv", "combined_log_1.csv", "combined_log_2.csv", 
              "combined_log_3.csv", "combined_log_4.csv", "combined_log_5.csv"]
-    metrics = ["avg_position_error", "avg_orientation_error", "position_error_rate", 
-               "orientation_error_rate", "position_r_squared", "orientation_r_squared", 
-               "max_position_error", "min_position_error", "max_orientation_error", 
-               "min_orientation_error", "position_error_pct_change", 
-               "orientation_error_pct_change"]
-    names = ["Average Position Error", "Average Orientation Error", 
-             "Position Error Rate", "Orientation Error Rate", 
-             "Position Rate Squared", "Orientation Rate Squared", 
-             "Max Position Error", "Min Position Error", 
-             "Max Orientation Error", "Min Orientation Error", 
-             "Position Error Percentage Change", "Orientation Error Percentage Change"]
+    # metrics = ["avg_position_error", "avg_orientation_error", "position_error_rate", 
+    #            "orientation_error_rate", "position_r_squared", "orientation_r_squared", 
+    #            "max_position_error", "min_position_error", "max_orientation_error", 
+    #            "min_orientation_error", "position_error_pct_change", 
+    #            "orientation_error_pct_change"]
+    # names = ["Average Position Error in meters", "Average Orientation Error in radians", 
+    #          "Position Error Rate", "Orientation Error Rate", 
+    #          "Position Rate Squared", "Orientation Rate Squared", 
+    #          "Max Position Error", "Min Position Error", 
+    #          "Max Orientation Error", "Min Orientation Error", 
+    #          "Position Error Percentage Change", "Orientation Error Percentage Change"]
+    metrics = ["avg_position_error", "avg_orientation_error", "min_position_error",  "min_orientation_error" ]
+    names = ["Average Position Error in meters", "Average Orientation Error in radians", "Min Position Error in meters", "Min Orientation Error in radians"]
     
     # Update this to your data file path
     for f in files:
         for i, m in enumerate(metrics):
             # You can choose "boxplot" or "violin" for plot_type
             make_plot(f, m, f"{names[i]} Distribution Across Model Versions", names[i], 
-                     plot_type="violin", use_seaborn=True)
+                     plot_type="boxplot", use_seaborn=True)
