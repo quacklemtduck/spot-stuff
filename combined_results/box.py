@@ -7,7 +7,7 @@ import os
 # Set plot style
 sns.set_style("whitegrid")
 
-# Load data from file
+# Load data from file with proper missing data handling
 def load_data(file_path):
     # Read the data
     with open(file_path, 'r') as f:
@@ -20,10 +20,18 @@ def load_data(file_path):
     # Convert to DataFrame
     df = pd.DataFrame(data, columns=header)
     
-    # Convert command to int and other columns to float
-    df['command'] = df['command'].astype(int)
+    # Replace empty strings with NaN
+    df = df.replace('', np.nan)
+    
+    # Convert command to int, handling missing values
+    df['command'] = pd.to_numeric(df['command'], errors='coerce').astype('Int64')
+    
+    # Convert other columns to float, handling missing values
     for col in df.columns[1:]:
-        df[col] = df[col].astype(float)
+        df[col] = pd.to_numeric(df[col], errors='coerce')
+    
+    # Remove rows where command is NaN (invalid command entries)
+    df = df.dropna(subset=['command'])
     
     # Set command as index
     df.set_index('command', inplace=True)
@@ -47,6 +55,12 @@ def plot_position_error_boxplot(df, metric="avg_position_error",
     # Sort dates chronologically
     dates = sorted(list(all_dates))
     
+    # Check if we have any data for this metric
+    if not dates:
+        print(f"No data found for metric: {metric}")
+        plt.close()
+        return
+    
     date_alias = {
         '2025-04-09': "Model 1",
         '2025-04-22': "Model 2", 
@@ -68,15 +82,22 @@ def plot_position_error_boxplot(df, metric="avg_position_error",
             # Get all values for this date/metric across all commands
             values_with_commands = []
             for command in df.index:
-                if not pd.isna(df.loc[command, matching_cols[0]]):
-                    values_with_commands.append((command, df.loc[command, matching_cols[0]]))
+                value = df.loc[command, matching_cols[0]]
+                if pd.notna(value):  # Only include non-NaN values
+                    values_with_commands.append((command, value))
             
-            values = [v[1] for v in values_with_commands]
-            commands = [v[0] for v in values_with_commands]
-            
-            boxplot_data.append(values)
-            labels.append(date_alias.get(date, date))
-            all_data_points.append((i + 1, values_with_commands))
+            if values_with_commands:  # Only proceed if we have data
+                values = [v[1] for v in values_with_commands]
+                
+                boxplot_data.append(values)
+                labels.append(date_alias.get(date, date))
+                all_data_points.append((i + 1, values_with_commands))
+    
+    # Check if we have any data to plot
+    if not boxplot_data:
+        print(f"No valid data found for metric: {metric}")
+        plt.close()
+        return
     
     # Create boxplot with higher transparency and lower z-order
     box_plot = plt.boxplot(boxplot_data, labels=labels, patch_artist=True)
@@ -93,7 +114,7 @@ def plot_position_error_boxplot(df, metric="avg_position_error",
         plt.setp(box_plot[element], color='black', zorder=1)
     
     # Define colors and markers for different commands
-    unique_commands = sorted(df.index.unique())
+    unique_commands = sorted([cmd for cmd in df.index if pd.notna(cmd)])
     command_colors = plt.cm.tab10(np.arange(len(unique_commands)))
     markers = ['o', 's', '^', 'v', 'd', '*', 'p', 'h', 'X', '+']
     
@@ -101,20 +122,22 @@ def plot_position_error_boxplot(df, metric="avg_position_error",
     plotted_commands = set()
     for pos, values_with_commands in all_data_points:
         for command, value in values_with_commands:
-            cmd_idx = unique_commands.index(command)
-            color = command_colors[cmd_idx]
-            marker = markers[cmd_idx % len(markers)]
-            
-            # Only add to legend once per command
-            label = f'Command {command}' if command not in plotted_commands else None
-            plotted_commands.add(command)
-            
-            plt.scatter(pos, value, alpha=0.9, s=80, color=color, 
-                       marker=marker, edgecolors='black', linewidth=1, 
-                       zorder=10, label=label)  # High z-order to appear on top
+            if pd.notna(command) and pd.notna(value):  # Double-check for valid data
+                cmd_idx = unique_commands.index(command) if command in unique_commands else 0
+                color = command_colors[cmd_idx]
+                marker = markers[cmd_idx % len(markers)]
+                
+                # Only add to legend once per command
+                label = f'Command {int(command)}' if command not in plotted_commands else None
+                plotted_commands.add(command)
+                
+                plt.scatter(pos, value, alpha=0.9, s=80, color=color, 
+                           marker=marker, edgecolors='black', linewidth=1, 
+                           zorder=10, label=label)  # High z-order to appear on top
     
-    # Add legend
-    plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left', fontsize=10)
+    # Add legend if we have any commands
+    if plotted_commands:
+        plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left', fontsize=10)
     
     # Formatting
     plt.title(title, fontsize=16, pad=20)
@@ -153,6 +176,12 @@ def plot_position_error_boxplot_seaborn(df, metric="avg_position_error",
     # Sort dates chronologically
     dates = sorted(list(all_dates))
     
+    # Check if we have any data for this metric
+    if not dates:
+        print(f"No data found for metric: {metric}")
+        plt.close()
+        return
+    
     date_alias = {
         '2025-04-09': "Model 1",
         '2025-04-22': "Model 2",
@@ -171,12 +200,19 @@ def plot_position_error_boxplot_seaborn(df, metric="avg_position_error",
         if matching_cols:
             # Get all values for this date/metric across all commands
             for command in df.index:
-                if not pd.isna(df.loc[command, matching_cols[0]]):
+                value = df.loc[command, matching_cols[0]]
+                if pd.notna(value) and pd.notna(command):  # Only include valid data
                     plot_data.append({
                         'Model Version': date_alias.get(date, date),
-                        'Value': df.loc[command, matching_cols[0]],
-                        'Command': command
+                        'Value': value,
+                        'Command': int(command)
                     })
+    
+    # Check if we have data to plot
+    if not plot_data:
+        print(f"No valid data found for metric: {metric}")
+        plt.close()
+        return
     
     # Convert to DataFrame
     plot_df = pd.DataFrame(plot_data)
@@ -215,8 +251,9 @@ def plot_position_error_boxplot_seaborn(df, metric="avg_position_error",
     # Remove duplicate legend entries
     handles, labels_legend = plt.gca().get_legend_handles_labels()
     by_label = dict(zip(labels_legend, handles))
-    plt.legend(by_label.values(), by_label.keys(), 
-              bbox_to_anchor=(1.02, 1), loc='upper left', fontsize=10)
+    if by_label:  # Only add legend if we have entries
+        plt.legend(by_label.values(), by_label.keys(), 
+                  bbox_to_anchor=(1.02, 1), loc='upper left', fontsize=10)
     
     # Formatting
     plt.title(title, fontsize=16, pad=20)
@@ -252,6 +289,12 @@ def plot_position_error_violin(df, metric="avg_position_error",
     # Sort dates chronologically
     dates = sorted(list(all_dates))
     
+    # Check if we have any data for this metric
+    if not dates:
+        print(f"No data found for metric: {metric}")
+        plt.close()
+        return
+    
     date_alias = {
         '2025-04-09': "Model 1",
         '2025-04-22': "Model 2",
@@ -270,12 +313,19 @@ def plot_position_error_violin(df, metric="avg_position_error",
         if matching_cols:
             # Get all values for this date/metric across all commands
             for command in df.index:
-                if not pd.isna(df.loc[command, matching_cols[0]]):
+                value = df.loc[command, matching_cols[0]]
+                if pd.notna(value) and pd.notna(command):  # Only include valid data
                     plot_data.append({
                         'Model Version': date_alias.get(date, date),
-                        'Value': df.loc[command, matching_cols[0]],
-                        'Command': command
+                        'Value': value,
+                        'Command': int(command)
                     })
+    
+    # Check if we have data to plot
+    if not plot_data:
+        print(f"No valid data found for metric: {metric}")
+        plt.close()
+        return
     
     # Convert to DataFrame
     plot_df = pd.DataFrame(plot_data)
@@ -311,8 +361,9 @@ def plot_position_error_violin(df, metric="avg_position_error",
     # Remove duplicate legend entries
     handles, labels_legend = plt.gca().get_legend_handles_labels()
     by_label = dict(zip(labels_legend, handles))
-    plt.legend(by_label.values(), by_label.keys(), 
-              bbox_to_anchor=(1.02, 1), loc='upper left', fontsize=10)
+    if by_label:  # Only add legend if we have entries
+        plt.legend(by_label.values(), by_label.keys(), 
+                  bbox_to_anchor=(1.02, 1), loc='upper left', fontsize=10)
     
     # Formatting
     plt.title(title, fontsize=16, pad=20)
@@ -334,24 +385,27 @@ def plot_position_error_violin(df, metric="avg_position_error",
 def make_plot(file_path: str, metric, title, yLabel, plot_type="boxplot", use_seaborn=True):
     # Make sure the file exists before proceeding
     if os.path.exists(file_path):
-        df = load_data(file_path)
-        
-        if plot_type == "violin":
-            output = f"{file_path.removesuffix('.csv')}_{metric}_violin.png"
-            plot_position_error_violin(df, metric, title, yLabel, output_file=output)
-        else:  # boxplot
-            output = f"{file_path.removesuffix('.csv')}_{metric}_boxplot.png"
-            if use_seaborn:
-                plot_position_error_boxplot_seaborn(df, metric, title, yLabel, output_file=output)
-            else:
-                plot_position_error_boxplot(df, metric, title, yLabel, output_file=output)
+        try:
+            df = load_data(file_path)
+            
+            if plot_type == "violin":
+                output = f"{file_path.removesuffix('.csv')}_{metric}_violin.png"
+                plot_position_error_violin(df, metric, title, yLabel, output_file=output)
+            else:  # boxplot
+                output = f"{file_path.removesuffix('.csv')}_{metric}_boxplot.png"
+                if use_seaborn:
+                    plot_position_error_boxplot_seaborn(df, metric, title, yLabel, output_file=output)
+                else:
+                    plot_position_error_boxplot(df, metric, title, yLabel, output_file=output)
+        except Exception as e:
+            print(f"Error processing {file_path} for metric {metric}: {str(e)}")
     else:
         print(f"Error: File '{file_path}' not found.")
-        print("Please save your data as 'model_comparison_data.csv' or update the file path.")
 
 if __name__ == "__main__":
     files = ["combined_log_0.csv", "combined_log_1.csv", "combined_log_2.csv", 
-             "combined_log_3.csv", "combined_log_4.csv", "combined_log_5.csv"]
+             "combined_log_345.csv"]
+    file_names = ["1. Easy", "2. Far away", "3. Close", "4. Sides & Back"]
     # metrics = ["avg_position_error", "avg_orientation_error", "position_error_rate", 
     #            "orientation_error_rate", "position_r_squared", "orientation_r_squared", 
     #            "max_position_error", "min_position_error", "max_orientation_error", 
@@ -364,11 +418,11 @@ if __name__ == "__main__":
     #          "Max Orientation Error", "Min Orientation Error", 
     #          "Position Error Percentage Change", "Orientation Error Percentage Change"]
     metrics = ["avg_position_error", "avg_orientation_error", "min_position_error",  "min_orientation_error" ]
-    names = ["Average Position Error in meters", "Average Orientation Error in radians", "Min Position Error in meters", "Min Orientation Error in radians"]
+    names = ["Average Position Error (Meters)", "Average Orientation Error (Radians)", "Min Position Error (Meters)", "Min Orientation Error (Radians)"]
     
     # Update this to your data file path
-    for f in files:
+    for j, f in enumerate(files):
         for i, m in enumerate(metrics):
             # You can choose "boxplot" or "violin" for plot_type
-            make_plot(f, m, f"{names[i]} Distribution Across Model Versions", names[i], 
+            make_plot(f, m, f"{file_names[j]} - {names[i]} Across Model Versions", names[i], 
                      plot_type="boxplot", use_seaborn=True)
