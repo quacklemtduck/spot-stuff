@@ -17,7 +17,7 @@ class SpotFlatPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     empirical_normalization = False
     store_code_state = False
     policy = RslRlPpoActorCriticCfg(
-        init_noise_std=0.5,
+        init_noise_std=1.5,
         actor_hidden_dims=[256, 128, 64],
         critic_hidden_dims=[256, 128, 64],
         activation="elu",
@@ -29,7 +29,7 @@ class SpotFlatPPORunnerCfg(RslRlOnPolicyRunnerCfg):
         entropy_coef=0.08,
         num_learning_epochs=5,
         num_mini_batches=4,
-        learning_rate=3.0e-4,
+        learning_rate=1.0e-3,
         schedule="adaptive",
         gamma=0.99,
         lam=0.95,
